@@ -1,6 +1,6 @@
 <?php
 /**
- * Orchestrates deterministic image brief generation.
+ * Orchestrates deterministic, profile-aware image brief generation.
  *
  * @package NT_Content_Images
  */
@@ -17,10 +17,8 @@ final class NT_Content_Images_Brief_Generator {
 	private NT_Content_Images_Restriction_Builder $restriction_builder;
 	private NT_Content_Images_Brief_Validator $validator;
 	private NT_Content_Images_Brief_Repository $repository;
+	private NT_Content_Images_Profile_Repository $profiles;
 
-	/**
-	 * Sets generator dependencies.
-	 */
 	public function __construct(
 		NT_Content_Images_Brief_Source_Builder $source_builder,
 		NT_Content_Images_Intent_Classifier $classifier,
@@ -28,7 +26,8 @@ final class NT_Content_Images_Brief_Generator {
 		NT_Content_Images_Placement_Planner $placement_planner,
 		NT_Content_Images_Restriction_Builder $restriction_builder,
 		NT_Content_Images_Brief_Validator $validator,
-		NT_Content_Images_Brief_Repository $repository
+		NT_Content_Images_Brief_Repository $repository,
+		NT_Content_Images_Profile_Repository $profiles
 	) {
 		$this->source_builder      = $source_builder;
 		$this->classifier          = $classifier;
@@ -37,33 +36,45 @@ final class NT_Content_Images_Brief_Generator {
 		$this->restriction_builder = $restriction_builder;
 		$this->validator           = $validator;
 		$this->repository          = $repository;
+		$this->profiles            = $profiles;
 	}
 
-	/**
-	 * Generates and stores one image brief.
-	 *
-	 * @return array<string, mixed>|WP_Error
-	 */
+	/** @return array<string, mixed>|WP_Error */
 	public function generate( int $post_id ) {
 		$source = $this->source_builder->build( $post_id );
-
 		if ( is_wp_error( $source ) ) {
 			return $source;
 		}
 
-		$classification = $this->classifier->classify( $source );
-		$strategy       = $this->strategy_resolver->resolve( $classification['content_type'], $source );
-		$target_images  = $this->target_content_image_count( absint( $source['word_count'] ?? 0 ), $classification['content_type'] );
-		$current_images = absint( $source['content_image_count'] ?? 0 );
-		$needed_images  = max( 0, $target_images - $current_images );
-		$placements     = $this->placement_planner->plan( $source, $needed_images, $classification['content_type'] );
-		$content_images = $this->build_content_images( $needed_images, $placements, $strategy, $source );
-		$brief          = array(
-			'schema_version'             => '1.0',
+		$profile_context = $this->profiles->get_context();
+		$site_profile    = $profile_context['site'];
+		$brand_profile   = $profile_context['brand'];
+		$classification  = $this->classifier->classify( $source );
+		$strategy        = $this->strategy_resolver->resolve( $classification['content_type'], $source );
+		$target_images   = $this->target_content_image_count( absint( $source['word_count'] ?? 0 ), $classification['content_type'] );
+		$current_images  = absint( $source['content_image_count'] ?? 0 );
+		$needed_images   = max( 0, $target_images - $current_images );
+		$placements      = $this->placement_planner->plan( $source, $needed_images, $classification['content_type'] );
+		$content_images  = $this->build_content_images( $needed_images, $placements, $strategy, $source );
+
+		$brief = array(
+			'schema_version'             => '1.1',
 			'post_id'                    => $post_id,
 			'source_content_hash'        => (string) $source['source_content_hash'],
+			'profile_version'            => absint( $profile_context['version'] ),
+			'profile_hash'               => sanitize_text_field( (string) $profile_context['profile_hash'] ),
+			'brand_profile_hash'         => sanitize_text_field( (string) $profile_context['brand_hash'] ),
+			'active_rule_packs'          => array_values( array_map( 'sanitize_key', (array) $site_profile['active_rule_packs'] ) ),
+			'profile'                    => array(
+				'site_name'          => sanitize_text_field( (string) $site_profile['site_name'] ),
+				'domain'             => sanitize_text_field( (string) $site_profile['domain'] ),
+				'language'           => sanitize_text_field( (string) $site_profile['language'] ),
+				'industries'         => array_values( array_map( 'sanitize_key', (array) $site_profile['industries'] ) ),
+				'enabled_post_types' => array_values( array_map( 'sanitize_key', (array) $site_profile['enabled_post_types'] ) ),
+			),
 			'status'                     => 'draft',
 			'topic'                      => $this->resolve_topic( $source ),
+			'post_type_mapping'          => sanitize_key( (string) ( $source['mapped_content_type'] ?? 'generic_content' ) ),
 			'content_type'               => $classification['content_type'],
 			'search_intent'              => $classification['search_intent'],
 			'classification'             => $classification,
@@ -74,106 +85,104 @@ final class NT_Content_Images_Brief_Generator {
 			'visual_strategy'            => $strategy['id'],
 			'visual_direction'           => $strategy,
 			'featured_image'             => array(
-				'required'        => 0 === absint( $source['featured_image_id'] ?? 0 ),
-				'purpose'         => 'Ảnh đại diện tổng quan cho chủ đề bài viết',
-				'visual_type'     => $strategy['featured_type'],
-				'aspect_ratio'    => '16:9',
-				'text_overlay'    => true,
-				'overlay_source'  => 'plugin_template',
+				'required'       => 0 === absint( $source['featured_image_id'] ?? 0 ),
+				'purpose'        => __( 'Ảnh đại diện tổng quan cho chủ đề nội dung', 'nt-tao-anh-noi-dung-wordpress' ),
+				'visual_type'    => $strategy['featured_type'],
+				'aspect_ratio'   => '16:9',
+				'text_overlay'   => ! empty( $brand_profile['overlay_enabled'] ),
+				'overlay_source' => 'plugin_template',
 			),
 			'current_content_images'     => $current_images,
 			'target_content_images'      => $target_images,
 			'recommended_content_images' => $needed_images,
 			'content_images'             => $content_images,
 			'brand'                      => array(
-				'logo_required'    => true,
-				'website_required' => true,
-				'template_family'  => $strategy['template_family'],
-				'text_rendering'   => 'plugin_controlled',
+				'brand_name'         => sanitize_text_field( (string) $brand_profile['brand_name'] ),
+				'website'            => esc_url_raw( (string) $brand_profile['website'] ),
+				'logo_attachment_id' => absint( $brand_profile['logo_attachment_id'] ),
+				'logo_required'      => ! empty( $brand_profile['logo_required'] ),
+				'website_required'   => ! empty( $brand_profile['website_required'] ),
+				'template_family'    => sanitize_key( (string) $brand_profile['template_family'] ),
+				'colors'             => array(
+					'primary'   => sanitize_hex_color( (string) $brand_profile['primary_color'] ),
+					'secondary' => sanitize_hex_color( (string) $brand_profile['secondary_color'] ),
+					'accent'    => sanitize_hex_color( (string) $brand_profile['accent_color'] ),
+				),
+				'font_family'       => sanitize_text_field( (string) $brand_profile['font_family'] ),
+				'text_rendering'    => 'plugin_controlled',
 			),
 			'restrictions'               => $this->restriction_builder->build( $source, $classification['content_type'] ),
 			'source'                     => array(
-				'title'              => $source['title'],
-				'focus_keyphrase'    => $source['focus_keyphrase'],
-				'word_count'         => $source['word_count'],
-				'headings'           => $source['headings'],
-				'has_shortcode'      => $source['has_shortcode'],
-				'has_complex_blocks' => $source['has_complex_blocks'],
-				'shortcodes'         => $source['shortcodes'],
-				'block_names'        => $source['block_names'],
+				'title'                        => $source['title'],
+				'focus_keyphrase'              => $source['focus_keyphrase'],
+				'seo_adapter'                  => $source['seo_adapter'],
+				'word_count'                   => $source['word_count'],
+				'headings'                     => $source['headings'],
+				'has_shortcode'                => $source['has_shortcode'],
+				'has_protected_shortcode'      => $source['has_protected_shortcode'],
+				'has_complex_blocks'           => $source['has_complex_blocks'],
+				'shortcodes'                    => $source['shortcodes'],
+				'protected_shortcodes_present' => $source['protected_shortcodes_present'],
+				'block_names'                   => $source['block_names'],
 			),
 			'generated_at'                => current_time( 'mysql', true ),
 		);
-		$validation                   = $this->validator->validate( $brief );
-		$brief['validation_status']   = $validation['status'];
-		$brief['validation']          = $validation;
-		$brief_id                     = $this->repository->save( $brief );
+
+		$brief = apply_filters( 'nt_content_images_image_brief', $brief, $source, $profile_context );
+		$validation                 = $this->validator->validate( $brief );
+		$brief['validation_status'] = $validation['status'];
+		$brief['validation']        = $validation;
+		$brief_id                   = $this->repository->save( $brief );
 
 		if ( false === $brief_id ) {
 			return new WP_Error( 'ntci_brief_store_failed', __( 'Không thể lưu kế hoạch hình ảnh.', 'nt-tao-anh-noi-dung-wordpress' ) );
 		}
-
 		$brief['id'] = $brief_id;
-
 		return $brief;
 	}
 
 	/**
-	 * Generates multiple briefs with a hard safety limit.
-	 *
 	 * @param int[] $post_ids Post IDs.
 	 * @return array{generated: int, failed: int, items: array<int, mixed>}
 	 */
 	public function generate_batch( array $post_ids ): array {
 		$post_ids = array_slice( array_values( array_unique( array_map( 'absint', $post_ids ) ) ), 0, 20 );
 		$result   = array( 'generated' => 0, 'failed' => 0, 'items' => array() );
-
 		foreach ( $post_ids as $post_id ) {
 			$brief = $this->generate( $post_id );
-
 			if ( is_wp_error( $brief ) ) {
 				++$result['failed'];
 				$result['items'][] = array( 'post_id' => $post_id, 'error' => $brief->get_error_code(), 'message' => $brief->get_error_message() );
 				continue;
 			}
-
 			++$result['generated'];
 			$result['items'][] = array( 'post_id' => $post_id, 'brief_id' => absint( $brief['id'] ), 'status' => $brief['validation_status'] );
 		}
-
 		return $result;
 	}
 
-	/**
-	 * Calculates target image coverage by length and content type.
-	 */
 	private function target_content_image_count( int $word_count, string $content_type ): int {
 		$target = $word_count > 3000 ? 3 : ( $word_count >= 1500 ? 2 : 1 );
-
-		if ( in_array( $content_type, array( 'course', 'service', 'event' ), true ) ) {
+		if ( in_array( $content_type, array( 'course', 'service', 'event', 'education_event', 'procurement_service' ), true ) ) {
 			$target = min( 2, $target );
 		}
-
-		return $target;
+		return (int) apply_filters( 'nt_content_images_target_content_image_count', $target, $word_count, $content_type );
 	}
 
 	/**
-	 * Builds per-image purpose and placement data.
-	 *
-	 * @param array<int, array<string, mixed>> $placements Planned anchors.
-	 * @param array<string, mixed>             $strategy   Visual strategy.
-	 * @param array<string, mixed>             $source     Source package.
+	 * @param array<int, array<string, mixed>> $placements Placements.
+	 * @param array<string, mixed>             $strategy Strategy.
+	 * @param array<string, mixed>             $source Source.
 	 * @return array<int, array<string, mixed>>
 	 */
 	private function build_content_images( int $count, array $placements, array $strategy, array $source ): array {
 		$images       = array();
 		$visual_types = is_array( $strategy['content_types'] ?? null ) ? $strategy['content_types'] : array( 'conceptual_visual' );
 		$headings     = is_array( $source['headings'] ?? null ) ? $source['headings'] : array();
-
 		for ( $index = 0; $index < $count; ++$index ) {
 			$placement = $placements[ $index ] ?? array( 'type' => 'manual_review_required', 'safety' => 'warning' );
 			$heading   = $headings[ $index ]['text'] ?? '';
-			$purpose   = 0 === $index ? 'Tạo điểm ngắt thị giác sau phần mở đầu và minh họa chủ đề chính' : 'Minh họa phần nội dung quan trọng' . ( $heading ? ': ' . $heading : '' );
+			$purpose   = 0 === $index ? __( 'Tạo điểm ngắt thị giác sau phần mở đầu và minh họa chủ đề chính', 'nt-tao-anh-noi-dung-wordpress' ) : __( 'Minh họa phần nội dung quan trọng', 'nt-tao-anh-noi-dung-wordpress' ) . ( $heading ? ': ' . $heading : '' );
 			$images[]  = array(
 				'index'        => $index + 1,
 				'purpose'      => sanitize_text_field( $purpose ),
@@ -183,16 +192,12 @@ final class NT_Content_Images_Brief_Generator {
 				'placement'    => $placement,
 			);
 		}
-
 		return $images;
 	}
 
-	/**
-	 * Resolves the human-readable topic.
-	 */
+	/** @param array<string, mixed> $source Source package. */
 	private function resolve_topic( array $source ): string {
 		$focus = trim( (string) ( $source['focus_keyphrase'] ?? '' ) );
-
 		return sanitize_text_field( '' !== $focus ? $focus : (string) ( $source['title'] ?? '' ) );
 	}
 }
