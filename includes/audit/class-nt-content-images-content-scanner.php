@@ -10,24 +10,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 final class NT_Content_Images_Content_Scanner {
-	/**
-	 * Image detector.
-	 */
 	private NT_Content_Images_Image_Detector $image_detector;
-
-	/**
-	 * Content metrics analyzer.
-	 */
 	private NT_Content_Images_Content_Metrics_Analyzer $metrics_analyzer;
-
-	/**
-	 * Priority calculator.
-	 */
 	private NT_Content_Images_Priority_Calculator $priority_calculator;
-
-	/**
-	 * Audit repository.
-	 */
 	private NT_Content_Images_Audit_Repository $repository;
 
 	/**
@@ -74,42 +59,42 @@ final class NT_Content_Images_Content_Scanner {
 		$image_summary     = $this->summarize_images( $images );
 		$priority          = $this->priority_calculator->calculate(
 			array(
-				'post_status'             => $post->post_status,
-				'featured_image_id'       => $featured_image_id,
-				'content_image_count'     => count( $images ),
-				'word_count'              => $metrics['word_count'],
-				'yoast_focus_keyphrase'   => $focus_keyphrase,
+				'post_status'           => $post->post_status,
+				'featured_image_id'     => $featured_image_id,
+				'content_image_count'   => count( $images ),
+				'word_count'            => $metrics['word_count'],
+				'yoast_focus_keyphrase' => $focus_keyphrase,
 			)
 		);
 		$scanned_at        = current_time( 'mysql', true );
 
 		return array(
-			'post_id'                 => $post_id,
-			'post_type'               => $post->post_type,
-			'post_status'             => $post->post_status,
-			'featured_image_id'       => $featured_image_id,
-			'content_image_count'     => count( $images ),
-			'local_image_count'       => $image_summary['local'],
-			'external_image_count'    => $image_summary['external'],
-			'missing_alt_count'       => $image_summary['missing_alt'],
-			'word_count'              => $metrics['word_count'],
-			'paragraph_count'         => $metrics['paragraph_count'],
-			'h2_count'                => $metrics['h2_count'],
-			'h3_count'                => $metrics['h3_count'],
-			'table_count'             => $metrics['table_count'],
-			'list_count'              => $metrics['list_count'],
-			'shortcode_count'         => $metrics['shortcode_count'],
-			'has_shortcode'           => $metrics['has_shortcode'],
-			'has_table'               => $metrics['has_table'],
-			'has_complex_blocks'      => $metrics['has_complex_blocks'],
-			'yoast_focus_keyphrase'   => $focus_keyphrase,
-			'priority_score'          => $priority['score'],
-			'priority_label'          => $priority['label'],
-			'audit_status'            => 'scanned',
-			'content_hash'            => $this->build_content_hash( $post, $featured_image_id ),
-			'scan_error'              => '',
-			'scanned_at'              => $scanned_at,
-			'analysis'                => array(
+			'post_id'               => $post_id,
+			'post_type'             => $post->post_type,
+			'post_status'           => $post->post_status,
+			'featured_image_id'     => $featured_image_id,
+			'content_image_count'   => count( $images ),
+			'local_image_count'     => $image_summary['local'],
+			'external_image_count'  => $image_summary['external'],
+			'missing_alt_count'     => $image_summary['missing_alt'],
+			'word_count'            => $metrics['word_count'],
+			'paragraph_count'       => $metrics['paragraph_count'],
+			'h2_count'              => $metrics['h2_count'],
+			'h3_count'              => $metrics['h3_count'],
+			'table_count'           => $metrics['table_count'],
+			'list_count'            => $metrics['list_count'],
+			'shortcode_count'       => $metrics['shortcode_count'],
+			'has_shortcode'         => $metrics['has_shortcode'],
+			'has_table'             => $metrics['has_table'],
+			'has_complex_blocks'    => $metrics['has_complex_blocks'],
+			'yoast_focus_keyphrase' => $focus_keyphrase,
+			'priority_score'        => $priority['score'],
+			'priority_label'        => $priority['label'],
+			'audit_status'          => 'scanned',
+			'content_hash'          => $this->calculate_hash_for_post( $post, $featured_image_id ),
+			'scan_error'            => '',
+			'scanned_at'            => $scanned_at,
+			'analysis'              => array(
 				'title'                      => get_the_title( $post ),
 				'slug'                       => $post->post_name,
 				'author_id'                  => absint( $post->post_author ),
@@ -151,7 +136,22 @@ final class NT_Content_Images_Content_Scanner {
 	}
 
 	/**
-	 * Returns the repository for later list and batch modules.
+	 * Calculates the lightweight hash used to skip unchanged posts.
+	 *
+	 * @return string|WP_Error
+	 */
+	public function get_content_hash( int $post_id ) {
+		$post = get_post( $post_id );
+
+		if ( ! $post instanceof WP_Post ) {
+			return new WP_Error( 'nt_content_images_post_not_found', __( 'Không tìm thấy nội dung cần kiểm tra.', 'nt-tao-anh-noi-dung-wordpress' ) );
+		}
+
+		return $this->calculate_hash_for_post( $post, absint( get_post_thumbnail_id( $post_id ) ) );
+	}
+
+	/**
+	 * Returns the repository for list, batch and export modules.
 	 */
 	public function get_repository(): NT_Content_Images_Audit_Repository {
 		return $this->repository;
@@ -188,7 +188,7 @@ final class NT_Content_Images_Content_Scanner {
 	/**
 	 * Builds a deterministic hash to support incremental rescans.
 	 */
-	private function build_content_hash( WP_Post $post, int $featured_image_id ): string {
+	private function calculate_hash_for_post( WP_Post $post, int $featured_image_id ): string {
 		return hash(
 			'sha256',
 			implode(
