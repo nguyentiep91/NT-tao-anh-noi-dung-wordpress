@@ -29,7 +29,7 @@ final class NT_Content_Images {
 		$this->initialize_brief_services();
 
 		$audit_rest = new NT_Content_Images_Audit_REST_Controller( $this->get_audit_runner(), $this->get_audit_repository(), $this->get_audit_query() );
-		$brief_rest = new NT_Content_Images_Brief_REST_Controller( $this->get_brief_generator(), $this->get_brief_repository(), $this->get_audit_repository() );
+		$brief_rest = new NT_Content_Images_Brief_REST_Controller( $this->get_brief_generator(), $this->get_brief_repository(), $this->get_audit_repository(), $this->get_profile_repository() );
 		$audit_admin = new NT_Content_Images_Audit_Admin( $this->get_audit_query(), $this->get_post_type_registry() );
 		$brief_admin = new NT_Content_Images_Brief_Admin();
 		$settings_admin = new NT_Content_Images_Settings_Admin( $this->get_profile_repository(), $this->get_post_type_registry(), $this->get_rule_pack_registry() );
