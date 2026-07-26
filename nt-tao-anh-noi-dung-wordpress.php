@@ -2,8 +2,8 @@
 /**
  * Plugin Name:       NT – Tạo ảnh cho nội dung WordPress
  * Plugin URI:        https://nguyentiep.vn
- * Description:       Phân tích nội dung WordPress, tạo ảnh bằng AI, duyệt ảnh và quản lý quy trình hình ảnh an toàn trong WordPress.
- * Version:           0.6.0
+ * Description:       Phân tích nội dung WordPress, tạo ảnh qua OpenAI/OpenRouter, chỉnh sửa bằng Canva và duyệt ảnh an toàn.
+ * Version:           0.7.0
  * Author:            Nguyễn Tiệp
  * Author URI:        https://nguyentiep.vn
  * Text Domain:       nt-tao-anh-noi-dung-wordpress
@@ -16,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'NT_CONTENT_IMAGES_VERSION', '0.6.0' );
+define( 'NT_CONTENT_IMAGES_VERSION', '0.7.0' );
 define( 'NT_CONTENT_IMAGES_DB_VERSION', '1.3.0' );
 define( 'NT_CONTENT_IMAGES_FILE', __FILE__ );
 define( 'NT_CONTENT_IMAGES_PATH', plugin_dir_path( __FILE__ ) );
@@ -72,7 +72,13 @@ require_once NT_CONTENT_IMAGES_PATH . 'includes/generation/class-nt-content-imag
 require_once NT_CONTENT_IMAGES_PATH . 'includes/generation/class-nt-content-images-featured-prompt-builder.php';
 require_once NT_CONTENT_IMAGES_PATH . 'includes/providers/interface-nt-content-images-image-provider.php';
 require_once NT_CONTENT_IMAGES_PATH . 'includes/providers/class-nt-content-images-openai-image-provider.php';
+require_once NT_CONTENT_IMAGES_PATH . 'includes/providers/class-nt-content-images-openrouter-image-provider.php';
+require_once NT_CONTENT_IMAGES_PATH . 'includes/providers/class-nt-content-images-image-provider-manager.php';
 require_once NT_CONTENT_IMAGES_PATH . 'includes/media/class-nt-content-images-media-manager.php';
+require_once NT_CONTENT_IMAGES_PATH . 'includes/canva/class-nt-content-images-canva-settings.php';
+require_once NT_CONTENT_IMAGES_PATH . 'includes/canva/class-nt-content-images-canva-oauth.php';
+require_once NT_CONTENT_IMAGES_PATH . 'includes/canva/class-nt-content-images-canva-client.php';
+require_once NT_CONTENT_IMAGES_PATH . 'includes/canva/class-nt-content-images-canva-design-service.php';
 require_once NT_CONTENT_IMAGES_PATH . 'includes/generation/class-nt-content-images-featured-image-generator.php';
 require_once NT_CONTENT_IMAGES_PATH . 'includes/generation/class-nt-content-images-generation-rest-controller.php';
 
