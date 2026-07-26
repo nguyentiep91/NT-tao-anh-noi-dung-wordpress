@@ -77,14 +77,15 @@ final class NT_Content_Images_OpenAI_Image_Provider implements NT_Content_Images
 			)
 		);
 		if ( is_wp_error( $response ) ) {
-			return new WP_Error( 'ntci_openai_transport_error', $response->get_error_message() );
+			return new WP_Error( 'ntci_openai_transport_error', NT_Content_Images_Secret_Redactor::redact_message( $response->get_error_message() ) );
 		}
 
 		$status = wp_remote_retrieve_response_code( $response );
 		$data   = json_decode( wp_remote_retrieve_body( $response ), true );
 		if ( $status < 200 || $status >= 300 ) {
 			$message = is_array( $data ) ? (string) ( $data['error']['message'] ?? '' ) : '';
-			return new WP_Error( 'ntci_openai_http_' . absint( $status ), '' !== $message ? sanitize_text_field( $message ) : __( 'OpenAI không thể tạo ảnh.', 'nt-tao-anh-noi-dung-wordpress' ), array( 'status' => $status ) );
+			$message = NT_Content_Images_Secret_Redactor::redact_message( $message );
+			return new WP_Error( 'ntci_openai_http_' . absint( $status ), '' !== $message ? $message : __( 'OpenAI không thể tạo ảnh.', 'nt-tao-anh-noi-dung-wordpress' ), array( 'status' => $status ) );
 		}
 		if ( ! is_array( $data ) || ! is_array( $data['data'][0] ?? null ) ) {
 			return new WP_Error( 'ntci_openai_response_invalid', __( 'OpenAI trả về dữ liệu ảnh không hợp lệ.', 'nt-tao-anh-noi-dung-wordpress' ) );
@@ -105,14 +106,21 @@ final class NT_Content_Images_OpenAI_Image_Provider implements NT_Content_Images
 			return new WP_Error( 'ntci_openai_image_missing', __( 'Không nhận được dữ liệu ảnh hợp lệ từ OpenAI.', 'nt-tao-anh-noi-dung-wordpress' ) );
 		}
 
+		$image_info = function_exists( 'getimagesizefromstring' ) ? getimagesizefromstring( $bytes ) : false;
+		$mime = is_array( $image_info ) ? sanitize_mime_type( (string) ( $image_info['mime'] ?? '' ) ) : '';
+		if ( ! in_array( $mime, array( 'image/png', 'image/jpeg', 'image/webp' ), true ) ) {
+			return new WP_Error( 'ntci_openai_image_mime_invalid', __( 'OpenAI không trả về ảnh raster PNG, JPEG hoặc WebP hợp lệ.', 'nt-tao-anh-noi-dung-wordpress' ) );
+		}
+		$extension = 'image/webp' === $mime ? 'webp' : ( 'image/jpeg' === $mime ? 'jpg' : 'png' );
+
 		return array(
 			'bytes'          => $bytes,
-			'mime_type'      => 'image/webp',
-			'extension'      => 'webp',
+			'mime_type'      => $mime,
+			'extension'      => $extension,
 			'provider'       => $this->get_id(),
 			'model'          => sanitize_text_field( (string) $config['openai_model'] ),
 			'revised_prompt' => sanitize_textarea_field( (string) ( $item['revised_prompt'] ?? '' ) ),
-			'usage'          => is_array( $data['usage'] ?? null ) ? $data['usage'] : array(),
+			'usage'          => is_array( $data['usage'] ?? null ) ? NT_Content_Images_Secret_Redactor::redact( $data['usage'] ) : array(),
 			'created'        => absint( $data['created'] ?? time() ),
 		);
 	}
