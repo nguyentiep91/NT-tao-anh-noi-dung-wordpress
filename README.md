@@ -8,7 +8,7 @@ Plugin WordPress hỗ trợ phân tích nội dung bài viết, tạo hình ản
 - **Tác giả:** Nguyễn Tiệp
 - **Website:** https://nguyentiep.vn
 - **Repository:** https://github.com/nguyentiep91/NT-tao-anh-noi-dung-wordpress
-- **Trạng thái:** Khởi tạo kiến trúc và bộ khung phát triển
+- **Trạng thái:** Đã khởi tạo kiến trúc và bộ khung phát triển trên nhánh `develop`
 
 ## Mục tiêu chính
 
@@ -42,7 +42,7 @@ Plugin WordPress hỗ trợ phân tích nội dung bài viết, tạo hình ản
 ```text
 Plugin slug: nt-tao-anh-noi-dung-wordpress
 Text domain: nt-tao-anh-noi-dung-wordpress
-PHP namespace: NT\ContentImages
+PHP namespace mục tiêu: NT\ContentImages
 REST namespace: nt-content-images/v1
 Option prefix: nt_content_images_
 Database prefix: nt_content_images_
@@ -55,16 +55,31 @@ Database prefix: nt_content_images_
 - `feature/*`: từng module hoặc tính năng riêng.
 - `fix/*`: sửa lỗi.
 
+## Bộ khung hiện tại
+
+- Bootstrap plugin và metadata chính thức.
+- Kiểm tra PHP tối thiểu khi kích hoạt.
+- Activator, deactivator và uninstall an toàn.
+- Menu quản trị placeholder, chưa tạo hoặc chèn ảnh.
+- Tài liệu kiến trúc và roadmap theo giai đoạn.
+- Composer và PHP_CodeSniffer cho coding standards.
+
 ## Lộ trình gần nhất
 
 - [x] Khởi tạo repository.
-- [ ] Tạo bộ khung plugin có thể kích hoạt an toàn.
-- [ ] Hoàn thiện tài liệu kiến trúc.
+- [x] Tạo bộ khung plugin có thể kích hoạt an toàn.
+- [x] Hoàn thiện tài liệu kiến trúc ban đầu.
+- [ ] Kiểm tra kích hoạt trên môi trường WordPress thử nghiệm.
 - [ ] Xây module audit bài viết ở chế độ chỉ đọc.
 - [ ] Xây hàng đợi xử lý và workflow duyệt.
 - [ ] Tích hợp nhà cung cấp AI đầu tiên.
 - [ ] Xây template chèn chữ/logo.
 - [ ] Bổ sung Canva tùy chọn.
+
+## Tài liệu
+
+- [Kiến trúc tổng thể](docs/ARCHITECTURE.md)
+- [Lộ trình phát triển](docs/ROADMAP.md)
 
 ## Bản quyền
 
