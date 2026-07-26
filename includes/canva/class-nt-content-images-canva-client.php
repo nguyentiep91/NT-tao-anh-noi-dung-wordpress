@@ -34,7 +34,7 @@ final class NT_Content_Images_Canva_Client {
 			return new WP_Error( 'ntci_canva_attachment_read_failed', __( 'Không thể đọc dữ liệu ảnh để gửi sang Canva.', 'nt-tao-anh-noi-dung-wordpress' ) );
 		}
 		$name = sanitize_text_field( get_the_title( $attachment_id ) ?: basename( $file ) );
-		$name = mb_substr( $name, 0, 50 );
+		$name = $this->truncate( $name, 50 );
 		$metadata = wp_json_encode(
 			array(
 				'name_base64' => base64_encode( $name ), // phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode
@@ -73,7 +73,7 @@ final class NT_Content_Images_Canva_Client {
 					'height' => min( 8000, max( 40, $height ) ),
 				),
 				'asset_id'    => sanitize_text_field( $asset_id ),
-				'title'       => mb_substr( sanitize_text_field( $title ), 0, 255 ),
+				'title'       => $this->truncate( sanitize_text_field( $title ), 255 ),
 			)
 		);
 		if ( is_wp_error( $result ) ) {
@@ -115,13 +115,17 @@ final class NT_Content_Images_Canva_Client {
 		if ( '' === $url || ! $this->is_canva_download_url( $url ) ) {
 			return new WP_Error( 'ntci_canva_export_url_invalid', __( 'Canva trả về URL tải ảnh không hợp lệ.', 'nt-tao-anh-noi-dung-wordpress' ) );
 		}
-		$download = wp_remote_get( $url, array( 'timeout' => 120, 'redirection' => 2 ) );
+		$download = wp_safe_remote_get( $url, array( 'timeout' => 120, 'redirection' => 2 ) );
 		if ( is_wp_error( $download ) || 200 !== wp_remote_retrieve_response_code( $download ) ) {
 			return new WP_Error( 'ntci_canva_export_download_failed', __( 'Không thể tải ảnh đã xuất từ Canva.', 'nt-tao-anh-noi-dung-wordpress' ) );
 		}
 		$bytes = wp_remote_retrieve_body( $download );
 		if ( '' === $bytes || strlen( $bytes ) > self::MAX_UPLOAD_BYTES ) {
 			return new WP_Error( 'ntci_canva_export_bytes_invalid', __( 'Dữ liệu ảnh xuất từ Canva không hợp lệ.', 'nt-tao-anh-noi-dung-wordpress' ) );
+		}
+		$image_info = function_exists( 'getimagesizefromstring' ) ? getimagesizefromstring( $bytes ) : false;
+		if ( ! is_array( $image_info ) || 'image/png' !== sanitize_mime_type( (string) ( $image_info['mime'] ?? '' ) ) ) {
+			return new WP_Error( 'ntci_canva_export_mime_invalid', __( 'Canva không trả về tệp PNG hợp lệ.', 'nt-tao-anh-noi-dung-wordpress' ) );
 		}
 		return array(
 			'bytes'      => $bytes,
@@ -141,12 +145,7 @@ final class NT_Content_Images_Canva_Client {
 		if ( is_wp_error( $token ) ) {
 			return $token;
 		}
-		$headers = array_merge(
-			array(
-				'Authorization' => 'Bearer ' . $token,
-			),
-			$extra_headers
-		);
+		$headers = array_merge( array( 'Authorization' => 'Bearer ' . $token ), $extra_headers );
 		$args = array(
 			'method'      => strtoupper( $method ),
 			'timeout'     => 120,
@@ -176,7 +175,7 @@ final class NT_Content_Images_Canva_Client {
 
 	/** @return array<string, mixed>|WP_Error */
 	private function poll_job( string $path, string $result_key ) {
-		for ( $attempt = 0; $attempt < 10; $attempt++ ) {
+		for ( $attempt = 0; $attempt < 20; $attempt++ ) {
 			$result = $this->request( 'GET', $path );
 			if ( is_wp_error( $result ) ) {
 				return $result;
@@ -186,6 +185,9 @@ final class NT_Content_Images_Canva_Client {
 			if ( 'success' === $status ) {
 				if ( 'asset' === $result_key && ! is_array( $job['asset'] ?? null ) ) {
 					return new WP_Error( 'ntci_canva_job_result_missing', __( 'Canva hoàn tất nhưng không trả về asset.', 'nt-tao-anh-noi-dung-wordpress' ) );
+				}
+				if ( 'urls' === $result_key && ! is_array( $job['urls'] ?? null ) ) {
+					return new WP_Error( 'ntci_canva_job_result_missing', __( 'Canva hoàn tất nhưng không trả về URL xuất tệp.', 'nt-tao-anh-noi-dung-wordpress' ) );
 				}
 				return $job;
 			}
@@ -202,5 +204,9 @@ final class NT_Content_Images_Canva_Client {
 		$parts = wp_parse_url( $url );
 		$host = strtolower( (string) ( $parts['host'] ?? '' ) );
 		return 'https' === strtolower( (string) ( $parts['scheme'] ?? '' ) ) && ( 'canva.com' === $host || str_ends_with( $host, '.canva.com' ) );
+	}
+
+	private function truncate( string $value, int $length ): string {
+		return function_exists( 'mb_substr' ) ? mb_substr( $value, 0, $length ) : substr( $value, 0, $length );
 	}
 }
