@@ -18,11 +18,14 @@ if ( 'yes' !== get_option( 'nt_content_images_delete_data_on_uninstall', 'no' ) 
 
 global $wpdb;
 
-$table_name = $wpdb->prefix . 'nt_content_images_audit';
-$wpdb->query( "DROP TABLE IF EXISTS {$table_name}" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.SchemaChange
+$audit_table = $wpdb->prefix . 'nt_content_images_audit';
+$brief_table = $wpdb->prefix . 'nt_content_image_briefs';
+$wpdb->query( "DROP TABLE IF EXISTS {$brief_table}" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.SchemaChange
+$wpdb->query( "DROP TABLE IF EXISTS {$audit_table}" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.SchemaChange
 
 delete_option( 'nt_content_images_version' );
 delete_option( 'nt_content_images_db_version' );
+delete_option( 'nt_content_images_brief_db_version' );
 delete_option( 'nt_content_images_workflow_mode' );
 delete_option( 'nt_content_images_delete_data_on_uninstall' );
 delete_option( 'nt_content_images_audit_job' );

@@ -9,7 +9,7 @@ Mục tiêu: repository có cấu trúc rõ ràng, plugin kích hoạt an toàn 
 - [x] Tạo bootstrap, activator, deactivator và uninstall an toàn.
 - [x] Bổ sung coding standards và kiểm tra cú pháp tự động.
 - [ ] Tạo bản ZIP thử nghiệm đầu tiên.
-- [ ] Kiểm tra kích hoạt trên WordPress 6.4+ / PHP 8.1+.
+- [x] Kiểm tra kích hoạt và vận hành trên LocalWP.
 
 **Tiêu chí hoàn thành:** plugin kích hoạt, hiển thị menu quản trị và không tạo/sửa ảnh hoặc nội dung.
 
@@ -43,22 +43,44 @@ Mục tiêu: repository có cấu trúc rõ ràng, plugin kích hoạt an toàn 
 
 ### Sprint Audit 3 — QA thực tế
 
+- [x] Cài đặt và chạy smoke test thành công trên LocalWP.
+- [x] Audit hoàn tất 51/51 bài, không có lỗi runtime trong lần chạy được ghi nhận.
+- [x] Cơ chế quét tăng dần đã ghi nhận cả bài quét mới và bài được bỏ qua.
 - [ ] Tạo fixtures tự động cho Gutenberg, Classic Editor, gallery, cover và shortcode.
 - [ ] Đối chiếu thủ công 20–30 bài thực tế.
-- [ ] Kiểm tra kích hoạt/deactivate/uninstall trên WordPress thử nghiệm.
-- [ ] Kiểm tra pause/resume/reload và xử lý đồng thời trên môi trường thật.
+- [ ] Kiểm tra đầy đủ deactivate/uninstall trên WordPress thử nghiệm.
+- [ ] Kiểm tra pause/resume/reload và xử lý đồng thời theo ma trận QA.
 - [ ] Hoàn thiện coding standards bắt buộc.
 - [ ] Tạo bản ZIP thử nghiệm đầu tiên.
 
-**Tiêu chí hoàn thành Phase 1:** báo cáo audit gần 500 bài chính xác, không làm thay đổi database nội dung, Media Library, shortcode, schema hoặc ngày đăng.
+**Tiêu chí hoàn thành Phase 1:** báo cáo audit chính xác, không làm thay đổi database nội dung, Media Library, shortcode, schema hoặc ngày đăng.
 
-## Phase 2 — Image Brief và Prompt
+## Phase 2 — Image Brief Engine
 
-- [ ] Quy tắc phân loại chủ đề.
-- [ ] Image brief JSON có schema.
+### Sprint Brief 1 — Nền tảng và tạo brief theo quy tắc
+
+- [x] Tạo bảng `{$wpdb->prefix}nt_content_image_briefs` có versioning.
+- [x] Tạo Brief Repository và workflow `draft/pending_review/approved/rejected/outdated`.
+- [x] Tạo Brief Source Builder từ dữ liệu bài viết và kết quả audit.
+- [x] Tạo Intent Classifier theo quy tắc giải thích được.
+- [x] Tạo Visual Strategy Resolver theo loại nội dung.
+- [x] Tạo Placement Planner theo anchor, không sửa `post_content`.
+- [x] Tạo Restriction Builder cho pháp lý, đấu thầu, chứng chỉ, FDA/ISO/CE.
+- [x] Tạo Image Brief JSON schema `1.0`.
+- [x] Tạo Brief Validator.
+- [x] Tạo REST API nội bộ và màn hình “Kế hoạch hình ảnh”.
+- [x] Tạo brief hàng loạt tối đa 20 bài/lần.
+- [x] Cho phép gửi duyệt, duyệt và từ chối brief.
+- [ ] Kiểm thử pilot 10 bài đại diện trên LocalWP.
+- [ ] Bổ sung giao diện chỉnh sửa chi tiết brief.
+
+### Sprint Brief 2 — Prompt Builder
+
 - [ ] Prompt builder theo template.
-- [ ] Negative constraints cho pháp lý, logo, chữ và giao diện giả.
+- [ ] Negative prompt/constraints từ brief.
+- [ ] Phiên bản prompt và truy vết nguồn.
 - [ ] Giao diện xem trước/chỉnh sửa prompt.
+- [ ] Kiểm thử prompt trên 10 brief đã duyệt.
 
 ## Phase 3 — Queue và Workflow
 

@@ -26,5 +26,6 @@ final class NT_Content_Images_Activator {
 		add_option( 'nt_content_images_delete_data_on_uninstall', 'no', '', false );
 
 		NT_Content_Images_Audit_Migrator::migrate();
+		NT_Content_Images_Brief_Migrator::migrate();
 	}
 }
