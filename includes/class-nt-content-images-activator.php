@@ -24,13 +24,11 @@ final class NT_Content_Images_Activator {
 		NT_Content_Images_Audit_Migrator::migrate();
 		NT_Content_Images_Brief_Migrator::migrate();
 		NT_Content_Images_Generation_Migrator::migrate();
+		NT_Content_Images_Asset_Migrator::migrate();
 
 		$post_types = new NT_Content_Images_Post_Type_Registry();
 		$rule_packs = new NT_Content_Images_Rule_Pack_Registry();
-		$profiles   = new NT_Content_Images_Profile_Repository( $post_types, $rule_packs, new NT_Content_Images_Profile_Validator() );
-		$profiles->save(
-			NT_Content_Images_Site_Profile::defaults( $post_types->get_slugs() ),
-			NT_Content_Images_Brand_Profile::defaults()
-		);
+		$profiles = new NT_Content_Images_Profile_Repository( $post_types, $rule_packs, new NT_Content_Images_Profile_Validator() );
+		$profiles->save( NT_Content_Images_Site_Profile::defaults( $post_types->get_slugs() ), NT_Content_Images_Brand_Profile::defaults() );
 	}
 }
