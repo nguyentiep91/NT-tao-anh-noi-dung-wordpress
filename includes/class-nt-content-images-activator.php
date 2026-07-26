@@ -23,6 +23,7 @@ final class NT_Content_Images_Activator {
 
 		NT_Content_Images_Audit_Migrator::migrate();
 		NT_Content_Images_Brief_Migrator::migrate();
+		NT_Content_Images_Generation_Migrator::migrate();
 
 		$post_types = new NT_Content_Images_Post_Type_Registry();
 		$rule_packs = new NT_Content_Images_Rule_Pack_Registry();
