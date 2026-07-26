@@ -2,8 +2,8 @@
 /**
  * Plugin Name:       NT – Tạo ảnh cho nội dung WordPress
  * Plugin URI:        https://nguyentiep.vn
- * Description:       Phân tích nội dung, lập kế hoạch hình ảnh theo profile website, chuẩn bị quy trình tạo và quản lý hình ảnh trong WordPress.
- * Version:           0.5.0
+ * Description:       Phân tích nội dung WordPress, tạo ảnh bằng AI, duyệt ảnh và quản lý quy trình hình ảnh an toàn trong WordPress.
+ * Version:           0.6.0
  * Author:            Nguyễn Tiệp
  * Author URI:        https://nguyentiep.vn
  * Text Domain:       nt-tao-anh-noi-dung-wordpress
@@ -16,8 +16,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'NT_CONTENT_IMAGES_VERSION', '0.5.0' );
-define( 'NT_CONTENT_IMAGES_DB_VERSION', '1.2.0' );
+define( 'NT_CONTENT_IMAGES_VERSION', '0.6.0' );
+define( 'NT_CONTENT_IMAGES_DB_VERSION', '1.3.0' );
 define( 'NT_CONTENT_IMAGES_FILE', __FILE__ );
 define( 'NT_CONTENT_IMAGES_PATH', plugin_dir_path( __FILE__ ) );
 define( 'NT_CONTENT_IMAGES_URL', plugin_dir_url( __FILE__ ) );
@@ -66,9 +66,20 @@ require_once NT_CONTENT_IMAGES_PATH . 'includes/brief/class-nt-content-images-br
 require_once NT_CONTENT_IMAGES_PATH . 'includes/brief/class-nt-content-images-brief-generator.php';
 require_once NT_CONTENT_IMAGES_PATH . 'includes/brief/class-nt-content-images-brief-rest-controller.php';
 
+require_once NT_CONTENT_IMAGES_PATH . 'includes/generation/class-nt-content-images-generation-settings.php';
+require_once NT_CONTENT_IMAGES_PATH . 'includes/generation/class-nt-content-images-generation-migrator.php';
+require_once NT_CONTENT_IMAGES_PATH . 'includes/generation/class-nt-content-images-generation-repository.php';
+require_once NT_CONTENT_IMAGES_PATH . 'includes/generation/class-nt-content-images-featured-prompt-builder.php';
+require_once NT_CONTENT_IMAGES_PATH . 'includes/providers/interface-nt-content-images-image-provider.php';
+require_once NT_CONTENT_IMAGES_PATH . 'includes/providers/class-nt-content-images-openai-image-provider.php';
+require_once NT_CONTENT_IMAGES_PATH . 'includes/media/class-nt-content-images-media-manager.php';
+require_once NT_CONTENT_IMAGES_PATH . 'includes/generation/class-nt-content-images-featured-image-generator.php';
+require_once NT_CONTENT_IMAGES_PATH . 'includes/generation/class-nt-content-images-generation-rest-controller.php';
+
 require_once NT_CONTENT_IMAGES_PATH . 'admin/class-nt-content-images-audit-admin.php';
 require_once NT_CONTENT_IMAGES_PATH . 'admin/class-nt-content-images-brief-admin.php';
 require_once NT_CONTENT_IMAGES_PATH . 'admin/class-nt-content-images-settings-admin.php';
+require_once NT_CONTENT_IMAGES_PATH . 'admin/class-nt-content-images-generation-admin.php';
 require_once NT_CONTENT_IMAGES_PATH . 'includes/class-nt-content-images-activator.php';
 require_once NT_CONTENT_IMAGES_PATH . 'includes/class-nt-content-images-deactivator.php';
 require_once NT_CONTENT_IMAGES_PATH . 'includes/class-nt-content-images.php';
