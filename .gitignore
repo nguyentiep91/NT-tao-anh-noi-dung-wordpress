@@ -1,0 +1,33 @@
+# Operating systems
+.DS_Store
+Thumbs.db
+
+# Editors and IDEs
+.idea/
+.vscode/
+*.code-workspace
+
+# Dependencies
+vendor/
+node_modules/
+
+# Build and test outputs
+build/
+dist/
+coverage/
+.phpunit.result.cache
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+wp-config.php
+*.local.php
+
+# Logs and temporary files
+*.log
+*.tmp
+*.cache
+
+# WordPress generated artifacts
+*.zip
