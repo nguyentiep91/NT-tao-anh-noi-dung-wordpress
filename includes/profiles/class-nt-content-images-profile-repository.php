@@ -31,11 +31,7 @@ final class NT_Content_Images_Profile_Repository {
 	/** @return array<string, mixed> */
 	public function get_site_profile(): array {
 		$raw = get_option( self::SITE_OPTION, array() );
-		return NT_Content_Images_Site_Profile::sanitize(
-			is_array( $raw ) ? $raw : array(),
-			$this->post_types->get_slugs(),
-			$this->rule_packs->get_ids()
-		);
+		return NT_Content_Images_Site_Profile::sanitize( is_array( $raw ) ? $raw : array(), $this->post_types->get_slugs(), $this->rule_packs->get_ids() );
 	}
 
 	/** @return array<string, mixed> */
@@ -44,40 +40,32 @@ final class NT_Content_Images_Profile_Repository {
 		return NT_Content_Images_Brand_Profile::sanitize( is_array( $raw ) ? $raw : array() );
 	}
 
-	/** Returns the monotonically increasing profile version. */
 	public function get_version(): int {
 		return max( 1, absint( get_option( self::VERSION_OPTION, 1 ) ) );
 	}
 
-	/**
-	 * Returns the complete, traceable profile context stored in new briefs.
-	 *
-	 * @return array<string, mixed>
-	 */
+	/** @return array<string, mixed> */
 	public function get_context(): array {
 		$site  = $this->get_site_profile();
 		$brand = $this->get_brand_profile();
-
 		return array(
-			'version'       => $this->get_version(),
-			'profile_hash'  => $this->hash( $site ),
-			'brand_hash'    => $this->hash( $brand ),
-			'site'          => $site,
-			'brand'         => $brand,
-			'validation'    => $this->validator->validate( $site, $brand ),
+			'version'      => $this->get_version(),
+			'profile_hash' => $this->hash( $site ),
+			'brand_hash'   => $this->hash( $brand ),
+			'site'         => $site,
+			'brand'        => $brand,
+			'validation'   => $this->validator->validate( $site, $brand ),
 		);
 	}
 
 	/**
-	 * Saves normalized profiles and increments version only when values change.
-	 *
-	 * @param array<string, mixed> $site_raw  Raw site profile.
+	 * @param array<string, mixed> $site_raw Raw site profile.
 	 * @param array<string, mixed> $brand_raw Raw brand profile.
 	 * @return array<string, mixed>|WP_Error
 	 */
 	public function save( array $site_raw, array $brand_raw ) {
-		$site = NT_Content_Images_Site_Profile::sanitize( $site_raw, $this->post_types->get_slugs(), $this->rule_packs->get_ids() );
-		$brand = NT_Content_Images_Brand_Profile::sanitize( $brand_raw );
+		$site       = NT_Content_Images_Site_Profile::sanitize( $site_raw, $this->post_types->get_slugs(), $this->rule_packs->get_ids() );
+		$brand      = NT_Content_Images_Brand_Profile::sanitize( $brand_raw );
 		$validation = $this->validator->validate( $site, $brand );
 
 		if ( 'invalid' === $validation['status'] ) {
@@ -91,21 +79,17 @@ final class NT_Content_Images_Profile_Repository {
 
 		update_option( self::SITE_OPTION, $site, false );
 		update_option( self::BRAND_OPTION, $brand, false );
-
 		if ( $changed ) {
 			update_option( self::VERSION_OPTION, $this->get_version() + 1, false );
 		}
 
 		$context = $this->get_context();
 		if ( $changed ) {
-			/** Fires after profile or brand settings change. */
 			do_action( 'nt_content_images_profile_updated', $context, $old_context );
 		}
-
 		return $context;
 	}
 
-	/** Returns a portable JSON export without secrets. */
 	public function export_json(): string {
 		$context = $this->get_context();
 		$payload = array(
@@ -118,11 +102,7 @@ final class NT_Content_Images_Profile_Repository {
 		return (string) wp_json_encode( $payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
 	}
 
-	/**
-	 * Imports a portable JSON profile.
-	 *
-	 * @return array<string, mixed>|WP_Error
-	 */
+	/** @return array<string, mixed>|WP_Error */
 	public function import_json( string $json ) {
 		if ( strlen( $json ) > 200000 ) {
 			return new WP_Error( 'ntci_profile_import_too_large', __( 'Tệp cấu hình vượt quá giới hạn cho phép.', 'nt-tao-anh-noi-dung-wordpress' ) );
@@ -134,11 +114,7 @@ final class NT_Content_Images_Profile_Repository {
 		return $this->save( $data['site_profile'], $data['brand_profile'] );
 	}
 
-	/**
-	 * Generates a deterministic SHA-256 hash for nested arrays.
-	 *
-	 * @param array<string, mixed> $value Profile value.
-	 */
+	/** @param array<string, mixed> $value Profile value. */
 	private function hash( array $value ): string {
 		$normalized = $this->canonicalize( $value );
 		return hash( 'sha256', (string) wp_json_encode( $normalized, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ) );
@@ -150,9 +126,7 @@ final class NT_Content_Images_Profile_Repository {
 			return $value;
 		}
 		if ( array_is_list( $value ) ) {
-			$items = array_map( array( $this, 'canonicalize' ), $value );
-			sort( $items );
-			return $items;
+			return array_map( array( $this, 'canonicalize' ), $value );
 		}
 		ksort( $value );
 		foreach ( $value as $key => $item ) {
