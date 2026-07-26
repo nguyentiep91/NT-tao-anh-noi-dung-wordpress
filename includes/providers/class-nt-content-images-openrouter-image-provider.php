@@ -127,8 +127,12 @@ final class NT_Content_Images_OpenRouter_Image_Provider implements NT_Content_Im
 		if ( '' === $bytes || strlen( $bytes ) > self::MAX_IMAGE_BYTES ) {
 			return new WP_Error( 'ntci_openrouter_image_missing', __( 'Không nhận được dữ liệu ảnh raster hợp lệ từ OpenRouter.', 'nt-tao-anh-noi-dung-wordpress' ) );
 		}
-		$detected = wp_get_image_mime( $bytes );
-		$mime = in_array( $media_type, array( 'image/png', 'image/jpeg', 'image/webp' ), true ) ? $media_type : ( $detected ?: 'image/png' );
+		$image_info = function_exists( 'getimagesizefromstring' ) ? getimagesizefromstring( $bytes ) : false;
+		$detected = is_array( $image_info ) ? sanitize_mime_type( (string) ( $image_info['mime'] ?? '' ) ) : '';
+		$mime = in_array( $media_type, array( 'image/png', 'image/jpeg', 'image/webp' ), true ) ? $media_type : $detected;
+		if ( ! in_array( $mime, array( 'image/png', 'image/jpeg', 'image/webp' ), true ) ) {
+			return new WP_Error( 'ntci_openrouter_mime_invalid', __( 'OpenRouter trả về định dạng ảnh không được hỗ trợ.', 'nt-tao-anh-noi-dung-wordpress' ) );
+		}
 		$extension = 'image/webp' === $mime ? 'webp' : ( 'image/jpeg' === $mime ? 'jpg' : 'png' );
 
 		return array(
