@@ -48,3 +48,7 @@ foreach (
 ) {
 	delete_option( $option );
 }
+
+$lock_like = $wpdb->esc_like( 'nt_content_images_generation_lock_' ) . '%';
+$lock_sql = $wpdb->prepare( "DELETE FROM {$wpdb->options} WHERE option_name LIKE %s", $lock_like );
+$wpdb->query( $lock_sql ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery
