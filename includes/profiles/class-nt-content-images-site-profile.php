@@ -11,23 +11,18 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 final class NT_Content_Images_Site_Profile {
 	/**
-	 * Returns portable defaults for a newly installed website.
-	 *
 	 * @param string[] $available_post_types Public post types.
 	 * @return array<string, mixed>
 	 */
 	public static function defaults( array $available_post_types = array() ): array {
 		$defaults = array_values( array_intersect( array( 'post', 'page' ), $available_post_types ) );
-
 		if ( empty( $defaults ) && ! empty( $available_post_types ) ) {
 			$defaults[] = (string) reset( $available_post_types );
 		}
-
 		$mapping = array();
 		foreach ( $defaults as $post_type ) {
 			$mapping[ $post_type ] = 'post' === $post_type ? 'article' : ( 'page' === $post_type ? 'page' : 'generic_content' );
 		}
-
 		return array(
 			'site_name'             => sanitize_text_field( (string) get_bloginfo( 'name' ) ),
 			'domain'                => sanitize_text_field( (string) wp_parse_url( home_url( '/' ), PHP_URL_HOST ) ),
@@ -43,17 +38,25 @@ final class NT_Content_Images_Site_Profile {
 	}
 
 	/**
-	 * Sanitizes one site profile payload.
-	 *
-	 * @param array<string, mixed> $raw                  Raw profile.
-	 * @param string[]             $available_post_types Public post types.
-	 * @param string[]             $available_rule_packs Registered rule pack IDs.
+	 * @param array<string, mixed> $raw Raw profile.
+	 * @param string[] $available_post_types Public post types.
+	 * @param string[] $available_rule_packs Rule pack IDs.
 	 * @return array<string, mixed>
 	 */
 	public static function sanitize( array $raw, array $available_post_types, array $available_rule_packs ): array {
+		if ( isset( $raw['industries_text'] ) ) {
+			$raw['industries'] = preg_split( '/[\r\n,]+/', (string) $raw['industries_text'] ) ?: array();
+		}
+		if ( isset( $raw['protected_shortcodes_text'] ) ) {
+			$raw['protected_shortcodes'] = preg_split( '/[\r\n,]+/', (string) $raw['protected_shortcodes_text'] ) ?: array();
+		}
+		if ( isset( $raw['blocked_heading_terms_text'] ) ) {
+			$raw['blocked_heading_terms'] = preg_split( '/[\r\n]+/', (string) $raw['blocked_heading_terms_text'] ) ?: array();
+		}
+		unset( $raw['industries_text'], $raw['protected_shortcodes_text'], $raw['blocked_heading_terms_text'] );
+
 		$defaults = self::defaults( $available_post_types );
 		$profile  = wp_parse_args( $raw, $defaults );
-
 		$profile['site_name'] = sanitize_text_field( (string) $profile['site_name'] );
 		$profile['domain']    = self::sanitize_domain( (string) $profile['domain'] );
 		$profile['language']  = sanitize_text_field( (string) $profile['language'] );
@@ -84,26 +87,18 @@ final class NT_Content_Images_Site_Profile {
 			$mapping[ $post_type ] = $value;
 		}
 		$profile['post_type_mapping'] = $mapping;
-
 		$profile['protected_shortcodes']  = self::sanitize_shortcodes( (array) $profile['protected_shortcodes'] );
 		$profile['blocked_heading_terms'] = self::sanitize_text_list( (array) $profile['blocked_heading_terms'] );
 		$profile['builder_policy']        = in_array( (string) $profile['builder_policy'], array( 'safe_only', 'manual_for_builders', 'media_only' ), true ) ? (string) $profile['builder_policy'] : 'safe_only';
-
 		return $profile;
 	}
 
-	/**
-	 * @param array<int, mixed> $values Raw values.
-	 * @return string[]
-	 */
+	/** @param array<int, mixed> $values Raw values. @return string[] */
 	private static function sanitize_list( array $values ): array {
 		return array_values( array_unique( array_filter( array_map( 'sanitize_key', array_map( 'strval', $values ) ) ) ) );
 	}
 
-	/**
-	 * @param array<int, mixed> $values Raw shortcode tags.
-	 * @return string[]
-	 */
+	/** @param array<int, mixed> $values Raw shortcode tags. @return string[] */
 	private static function sanitize_shortcodes( array $values ): array {
 		$tags = array();
 		foreach ( $values as $value ) {
@@ -116,23 +111,12 @@ final class NT_Content_Images_Site_Profile {
 		return array_values( array_unique( $tags ) );
 	}
 
-	/**
-	 * @param array<int, mixed> $values Raw text values.
-	 * @return string[]
-	 */
+	/** @param array<int, mixed> $values Raw text values. @return string[] */
 	private static function sanitize_text_list( array $values ): array {
-		$items = array_map(
-			static function ( $value ): string {
-				return sanitize_text_field( trim( (string) $value ) );
-			},
-			$values
-		);
+		$items = array_map( static fn( $value ): string => sanitize_text_field( trim( (string) $value ) ), $values );
 		return array_values( array_unique( array_filter( $items ) ) );
 	}
 
-	/**
-	 * Sanitizes a hostname without accepting a path or credentials.
-	 */
 	private static function sanitize_domain( string $domain ): string {
 		$host = wp_parse_url( false === strpos( $domain, '://' ) ? 'https://' . $domain : $domain, PHP_URL_HOST );
 		return sanitize_text_field( strtolower( (string) $host ) );
