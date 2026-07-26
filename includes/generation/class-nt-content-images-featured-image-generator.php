@@ -30,8 +30,8 @@ final class NT_Content_Images_Featured_Image_Generator {
 		NT_Content_Images_Generation_Repository $repository,
 		NT_Content_Images_Generation_Settings $settings,
 		NT_Content_Images_Profile_Repository $profiles,
-		NT_Content_Images_Generation_Lock $lock,
-		NT_Content_Images_Safe_Logger $logger
+		?NT_Content_Images_Generation_Lock $lock = null,
+		?NT_Content_Images_Safe_Logger $logger = null
 	) {
 		$this->brief_generator = $brief_generator;
 		$this->briefs          = $briefs;
@@ -41,8 +41,8 @@ final class NT_Content_Images_Featured_Image_Generator {
 		$this->repository      = $repository;
 		$this->settings        = $settings;
 		$this->profiles        = $profiles;
-		$this->lock            = $lock;
-		$this->logger          = $logger;
+		$this->lock            = $lock ?? new NT_Content_Images_Generation_Lock();
+		$this->logger          = $logger ?? new NT_Content_Images_Safe_Logger();
 	}
 
 	/** @return array<string, mixed>|WP_Error */
