@@ -25,6 +25,7 @@ $wpdb->query( "DROP TABLE IF EXISTS {$audit_table}" ); // phpcs:ignore WordPress
 
 delete_option( 'nt_content_images_version' );
 delete_option( 'nt_content_images_db_version' );
+delete_option( 'nt_content_images_brief_db_version' );
 delete_option( 'nt_content_images_workflow_mode' );
 delete_option( 'nt_content_images_delete_data_on_uninstall' );
 delete_option( 'nt_content_images_audit_job' );
