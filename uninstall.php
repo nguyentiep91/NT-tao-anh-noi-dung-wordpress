@@ -40,6 +40,9 @@ foreach (
 		'nt_content_images_profile_version',
 		'nt_content_images_generation_settings',
 		'nt_content_images_openai_api_key',
+		'nt_content_images_openrouter_api_key',
+		'nt_content_images_canva_credentials',
+		'nt_content_images_canva_tokens',
 	)
 	as $option
 ) {
