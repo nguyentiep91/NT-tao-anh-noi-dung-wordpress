@@ -13,6 +13,7 @@ $GLOBALS['ntci_test_options'] = array();
 $GLOBALS['ntci_test_transients'] = array();
 $GLOBALS['ntci_test_http_post'] = null;
 $GLOBALS['ntci_test_http_get'] = null;
+$GLOBALS['ntci_test_http_request'] = null;
 $GLOBALS['ntci_test_actions'] = array();
 
 final class WP_Error {
@@ -43,7 +44,9 @@ function is_wp_error( $value ): bool { return $value instanceof WP_Error; }
 function apply_filters( string $hook, $value, ...$args ) { return $value; }
 function do_action( string $hook, ...$args ): void { $GLOBALS['ntci_test_actions'][] = array( $hook, $args ); }
 function home_url( string $path = '' ): string { return 'https://example.test' . $path; }
+function admin_url( string $path = '' ): string { return 'https://example.test/wp-admin/' . ltrim( $path, '/' ); }
 function get_bloginfo( string $show = '' ): string { return 'NT Test'; }
+function add_query_arg( array $args, string $url ): string { return $url . ( str_contains( $url, '?' ) ? '&' : '?' ) . http_build_query( $args ); }
 
 function get_option( string $name, $default = false ) {
 	return array_key_exists( $name, $GLOBALS['ntci_test_options'] ) ? $GLOBALS['ntci_test_options'][ $name ] : $default;
@@ -71,6 +74,11 @@ function set_transient( string $name, $value, int $expiration = 0 ): bool {
 	$GLOBALS['ntci_test_transients'][ $name ] = $value;
 	return true;
 }
+function delete_transient( string $name ): bool {
+	$exists = array_key_exists( $name, $GLOBALS['ntci_test_transients'] );
+	unset( $GLOBALS['ntci_test_transients'][ $name ] );
+	return $exists;
+}
 
 function wp_remote_post( string $url, array $args = array() ) {
 	$response = $GLOBALS['ntci_test_http_post'];
@@ -78,6 +86,10 @@ function wp_remote_post( string $url, array $args = array() ) {
 }
 function wp_remote_get( string $url, array $args = array() ) {
 	$response = $GLOBALS['ntci_test_http_get'];
+	return is_callable( $response ) ? $response( $url, $args ) : $response;
+}
+function wp_remote_request( string $url, array $args = array() ) {
+	$response = $GLOBALS['ntci_test_http_request'];
 	return is_callable( $response ) ? $response( $url, $args ) : $response;
 }
 function wp_safe_remote_get( string $url, array $args = array() ) { return wp_remote_get( $url, $args ); }
@@ -92,3 +104,5 @@ require_once dirname( __DIR__ ) . '/includes/providers/interface-nt-content-imag
 require_once dirname( __DIR__ ) . '/includes/providers/class-nt-content-images-openai-image-provider.php';
 require_once dirname( __DIR__ ) . '/includes/providers/class-nt-content-images-openrouter-image-provider.php';
 require_once dirname( __DIR__ ) . '/includes/providers/class-nt-content-images-image-provider-manager.php';
+require_once dirname( __DIR__ ) . '/includes/canva/class-nt-content-images-canva-settings.php';
+require_once dirname( __DIR__ ) . '/includes/canva/class-nt-content-images-canva-oauth.php';
