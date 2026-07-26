@@ -29,20 +29,26 @@ Mục tiêu: repository có cấu trúc rõ ràng, plugin kích hoạt an toàn 
 
 ### Sprint Audit 2 — Batch và giao diện
 
-- [ ] Thống kê tổng số bài theo post type và trạng thái.
-- [ ] Tạo REST/AJAX controller có nonce và capability.
-- [ ] Quét theo batch nhỏ, hiển thị tiến độ, tạm dừng và tiếp tục.
-- [ ] Chỉ quét lại bài có `content_hash` thay đổi.
-- [ ] Tạo màn hình danh sách, bộ lọc và phân trang.
-- [ ] Tạo màn hình chi tiết một bài.
-- [ ] Export CSV theo bộ lọc.
+- [x] Thống kê tổng số bài theo post type và trạng thái.
+- [x] Tạo REST controller nội bộ có REST nonce và capability `manage_options`.
+- [x] Quét theo batch 5–50 bài, hiển thị tiến độ, tạm dừng, tiếp tục và hủy.
+- [x] Chỉ quét lại bài có `content_hash` thay đổi trong chế độ mặc định.
+- [x] Lưu job state trong WordPress options để tải lại trang không mất tiến độ.
+- [x] Khóa request ngắn hạn để ngăn hai batch chạy đồng thời.
+- [x] Một bài lỗi không làm dừng toàn bộ tiến trình.
+- [x] Tạo màn hình danh sách, bộ lọc và phân trang.
+- [x] Tạo màn hình chi tiết một bài.
+- [x] Export CSV UTF-8 theo bộ lọc và chống CSV injection.
+- [x] Không gọi AI và không thay đổi bài viết hoặc Media Library.
 
 ### Sprint Audit 3 — QA thực tế
 
-- [ ] Tạo fixtures cho Gutenberg, Classic Editor, gallery, cover và shortcode.
+- [ ] Tạo fixtures tự động cho Gutenberg, Classic Editor, gallery, cover và shortcode.
 - [ ] Đối chiếu thủ công 20–30 bài thực tế.
 - [ ] Kiểm tra kích hoạt/deactivate/uninstall trên WordPress thử nghiệm.
+- [ ] Kiểm tra pause/resume/reload và xử lý đồng thời trên môi trường thật.
 - [ ] Hoàn thiện coding standards bắt buộc.
+- [ ] Tạo bản ZIP thử nghiệm đầu tiên.
 
 **Tiêu chí hoàn thành Phase 1:** báo cáo audit gần 500 bài chính xác, không làm thay đổi database nội dung, Media Library, shortcode, schema hoặc ngày đăng.
 
