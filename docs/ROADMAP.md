@@ -7,7 +7,7 @@ Mục tiêu: repository có cấu trúc rõ ràng, plugin kích hoạt an toàn 
 - [x] Khởi tạo `main` và `develop`.
 - [x] Tạo README và tài liệu kiến trúc.
 - [x] Tạo bootstrap, activator, deactivator và uninstall an toàn.
-- [ ] Bổ sung coding standards và kiểm tra cú pháp tự động.
+- [x] Bổ sung coding standards và kiểm tra cú pháp tự động.
 - [ ] Tạo bản ZIP thử nghiệm đầu tiên.
 - [ ] Kiểm tra kích hoạt trên WordPress 6.4+ / PHP 8.1+.
 
@@ -15,14 +15,36 @@ Mục tiêu: repository có cấu trúc rõ ràng, plugin kích hoạt an toàn 
 
 ## Phase 1 — Audit chỉ đọc
 
-- [ ] Thống kê tổng số bài theo post type và trạng thái.
-- [ ] Xác định bài thiếu featured image.
-- [ ] Xác định bài không có ảnh trong nội dung.
-- [ ] Đọc số từ, categories, tags, H2/H3 và Yoast focus keyphrase nếu có.
-- [ ] Lọc, phân trang và export CSV.
-- [ ] Không ghi thay đổi vào bài viết.
+### Sprint Audit 1 — Nền tảng dữ liệu
 
-**Tiêu chí hoàn thành:** báo cáo audit gần 500 bài chính xác, không làm thay đổi database nội dung.
+- [x] Tạo migration bảng `{$wpdb->prefix}nt_content_images_audit`.
+- [x] Tạo Audit Repository hỗ trợ đọc, upsert và xóa dữ liệu dẫn xuất.
+- [x] Tạo Content Scanner cho từng bài viết.
+- [x] Tạo Image Detector cho Gutenberg và Classic HTML.
+- [x] Tạo Content Metrics Analyzer.
+- [x] Tạo Priority Calculator và số ảnh nội dung khuyến nghị.
+- [x] Đọc Yoast focus keyphrase nếu có.
+- [x] Lưu `content_hash` để chuẩn bị quét tăng dần.
+- [x] Không render block, không chạy shortcode và không sửa bài viết.
+
+### Sprint Audit 2 — Batch và giao diện
+
+- [ ] Thống kê tổng số bài theo post type và trạng thái.
+- [ ] Tạo REST/AJAX controller có nonce và capability.
+- [ ] Quét theo batch nhỏ, hiển thị tiến độ, tạm dừng và tiếp tục.
+- [ ] Chỉ quét lại bài có `content_hash` thay đổi.
+- [ ] Tạo màn hình danh sách, bộ lọc và phân trang.
+- [ ] Tạo màn hình chi tiết một bài.
+- [ ] Export CSV theo bộ lọc.
+
+### Sprint Audit 3 — QA thực tế
+
+- [ ] Tạo fixtures cho Gutenberg, Classic Editor, gallery, cover và shortcode.
+- [ ] Đối chiếu thủ công 20–30 bài thực tế.
+- [ ] Kiểm tra kích hoạt/deactivate/uninstall trên WordPress thử nghiệm.
+- [ ] Hoàn thiện coding standards bắt buộc.
+
+**Tiêu chí hoàn thành Phase 1:** báo cáo audit gần 500 bài chính xác, không làm thay đổi database nội dung, Media Library, shortcode, schema hoặc ngày đăng.
 
 ## Phase 2 — Image Brief và Prompt
 
