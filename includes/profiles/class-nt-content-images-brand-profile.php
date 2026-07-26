@@ -10,14 +10,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 final class NT_Content_Images_Brand_Profile {
-	/**
-	 * Returns brand defaults derived from native WordPress settings.
-	 *
-	 * @return array<string, mixed>
-	 */
+	/** @return array<string, mixed> */
 	public static function defaults(): array {
 		$custom_logo_id = absint( get_theme_mod( 'custom_logo', 0 ) );
-
 		return array(
 			'brand_name'         => sanitize_text_field( (string) get_bloginfo( 'name' ) ),
 			'website'            => esc_url_raw( home_url( '/' ) ),
@@ -34,13 +29,18 @@ final class NT_Content_Images_Brand_Profile {
 	}
 
 	/**
-	 * Sanitizes one brand profile payload.
-	 *
 	 * @param array<string, mixed> $raw Raw brand settings.
 	 * @return array<string, mixed>
 	 */
 	public static function sanitize( array $raw ): array {
-		$profile = wp_parse_args( $raw, self::defaults() );
+		$defaults   = self::defaults();
+		$is_payload = ! empty( $raw );
+		$booleans   = array(
+			'logo_required'    => $is_payload ? array_key_exists( 'logo_required', $raw ) && ! empty( $raw['logo_required'] ) : $defaults['logo_required'],
+			'website_required' => $is_payload ? array_key_exists( 'website_required', $raw ) && ! empty( $raw['website_required'] ) : $defaults['website_required'],
+			'overlay_enabled'  => $is_payload ? array_key_exists( 'overlay_enabled', $raw ) && ! empty( $raw['overlay_enabled'] ) : $defaults['overlay_enabled'],
+		);
+		$profile = wp_parse_args( $raw, $defaults );
 
 		$profile['brand_name']         = sanitize_text_field( (string) $profile['brand_name'] );
 		$profile['website']            = esc_url_raw( (string) $profile['website'] );
@@ -50,24 +50,19 @@ final class NT_Content_Images_Brand_Profile {
 		$profile['accent_color']       = self::sanitize_color( (string) $profile['accent_color'], '#ffffff' );
 		$profile['font_family']        = sanitize_text_field( (string) $profile['font_family'] );
 		$profile['template_family']    = sanitize_key( (string) $profile['template_family'] );
-		$profile['logo_required']      = ! empty( $profile['logo_required'] );
-		$profile['website_required']   = ! empty( $profile['website_required'] );
-		$profile['overlay_enabled']    = ! empty( $profile['overlay_enabled'] );
+		$profile['logo_required']      = (bool) $booleans['logo_required'];
+		$profile['website_required']   = (bool) $booleans['website_required'];
+		$profile['overlay_enabled']    = (bool) $booleans['overlay_enabled'];
 
 		if ( '' === $profile['brand_name'] ) {
 			$profile['brand_name'] = sanitize_text_field( (string) get_bloginfo( 'name' ) );
 		}
-
 		if ( '' === $profile['template_family'] ) {
 			$profile['template_family'] = 'corporate';
 		}
-
 		return $profile;
 	}
 
-	/**
-	 * Returns a validated hexadecimal color or fallback.
-	 */
 	private static function sanitize_color( string $color, string $fallback ): string {
 		$sanitized = sanitize_hex_color( $color );
 		return is_string( $sanitized ) && '' !== $sanitized ? $sanitized : $fallback;
