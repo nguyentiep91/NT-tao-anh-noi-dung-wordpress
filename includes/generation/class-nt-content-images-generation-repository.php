@@ -62,7 +62,6 @@ final class NT_Content_Images_Generation_Repository {
 		$table    = NT_Content_Images_Generation_Migrator::get_table_name();
 		$where    = array( '1=1' );
 		$params   = array();
-
 		if ( '' !== $status ) {
 			$where[]  = 'g.status = %s';
 			$params[] = $status;
@@ -79,7 +78,6 @@ final class NT_Content_Images_Generation_Repository {
 		$list_sql  = "SELECT g.*, p.post_title FROM {$table} g LEFT JOIN {$wpdb->posts} p ON p.ID = g.post_id WHERE {$where_sql} ORDER BY g.created_at DESC LIMIT %d OFFSET %d";
 		$list_sql  = $wpdb->prepare( $list_sql, ...array_merge( $params, array( $per_page, $offset ) ) );
 		$rows      = $wpdb->get_results( $list_sql, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-
 		return array(
 			'items'    => array_map( array( $this, 'hydrate' ), is_array( $rows ) ? $rows : array() ),
 			'total'    => $total,
@@ -99,11 +97,25 @@ final class NT_Content_Images_Generation_Repository {
 			'updated_at'  => current_time( 'mysql', true ),
 			'approved_at' => 'approved' === $status ? current_time( 'mysql', true ) : null,
 		);
+		return $wpdb->update( NT_Content_Images_Generation_Migrator::get_table_name(), $data, array( 'id' => absint( $id ) ), array( '%s', '%s', '%s' ), array( '%d' ) );
+	}
+
+	/** Merges traceable provider metadata without changing content or status. */
+	public function merge_response( int $id, array $extra ): int|false {
+		global $wpdb;
+		$item = $this->get( $id );
+		if ( null === $item ) {
+			return false;
+		}
+		$response = array_replace_recursive( is_array( $item['response'] ?? null ) ? $item['response'] : array(), $extra );
 		return $wpdb->update(
 			NT_Content_Images_Generation_Migrator::get_table_name(),
-			$data,
+			array(
+				'response_json' => wp_json_encode( $response, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ),
+				'updated_at'    => current_time( 'mysql', true ),
+			),
 			array( 'id' => absint( $id ) ),
-			array( '%s', '%s', '%s' ),
+			array( '%s', '%s' ),
 			array( '%d' )
 		);
 	}
