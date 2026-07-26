@@ -124,7 +124,8 @@ final class NT_Content_Images_Audit_Repository {
 		return array(
 			'%d', '%s', '%s', '%d', '%d', '%d', '%d', '%d',
 			'%d', '%d', '%d', '%d', '%d', '%d', '%d', '%d',
-			'%d', '%s', '%d', '%s', '%s', '%s', '%s', '%s', '%s',
+			'%d', '%d', '%s', '%d', '%s', '%s', '%s', '%s',
+			'%s', '%s', '%s',
 		);
 	}
 }
