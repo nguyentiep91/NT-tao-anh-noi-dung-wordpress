@@ -21,7 +21,7 @@ final class NT_Content_Images_Brief_Validator {
 		$warnings = array();
 		$post_id  = absint( $brief['post_id'] ?? 0 );
 
-		if ( 0 === $post_id || ! get_post( $post_id ) instanceof WP_Post ) {
+		if ( 0 === $post_id || ! ( get_post( $post_id ) instanceof WP_Post ) ) {
 			$errors[] = 'invalid_post_id';
 		}
 
