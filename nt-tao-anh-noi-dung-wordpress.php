@@ -2,8 +2,8 @@
 /**
  * Plugin Name:       NT – Tạo ảnh cho nội dung WordPress
  * Plugin URI:        https://nguyentiep.vn
- * Description:       Phân tích nội dung bài viết, tạo ảnh bằng AI, chèn chữ và nhận diện thương hiệu, tối ưu ảnh và quản lý quy trình duyệt ảnh trong WordPress.
- * Version:           0.4.0
+ * Description:       Phân tích nội dung, lập kế hoạch hình ảnh theo profile website, chuẩn bị quy trình tạo và quản lý hình ảnh trong WordPress.
+ * Version:           0.5.0
  * Author:            Nguyễn Tiệp
  * Author URI:        https://nguyentiep.vn
  * Text Domain:       nt-tao-anh-noi-dung-wordpress
@@ -16,11 +16,32 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'NT_CONTENT_IMAGES_VERSION', '0.4.0' );
-define( 'NT_CONTENT_IMAGES_DB_VERSION', '1.1.0' );
+define( 'NT_CONTENT_IMAGES_VERSION', '0.5.0' );
+define( 'NT_CONTENT_IMAGES_DB_VERSION', '1.2.0' );
 define( 'NT_CONTENT_IMAGES_FILE', __FILE__ );
 define( 'NT_CONTENT_IMAGES_PATH', plugin_dir_path( __FILE__ ) );
 define( 'NT_CONTENT_IMAGES_URL', plugin_dir_url( __FILE__ ) );
+
+require_once NT_CONTENT_IMAGES_PATH . 'includes/core/class-nt-content-images-post-type-registry.php';
+require_once NT_CONTENT_IMAGES_PATH . 'includes/core/class-nt-content-images-content-type-mapper.php';
+
+require_once NT_CONTENT_IMAGES_PATH . 'includes/rules/interface-nt-content-images-rule-pack.php';
+require_once NT_CONTENT_IMAGES_PATH . 'includes/rules/class-nt-content-images-generic-rule-pack.php';
+require_once NT_CONTENT_IMAGES_PATH . 'includes/rules/class-nt-content-images-education-rule-pack.php';
+require_once NT_CONTENT_IMAGES_PATH . 'includes/rules/class-nt-content-images-legal-rule-pack.php';
+require_once NT_CONTENT_IMAGES_PATH . 'includes/rules/class-nt-content-images-procurement-rule-pack.php';
+require_once NT_CONTENT_IMAGES_PATH . 'includes/rules/class-nt-content-images-rule-pack-registry.php';
+
+require_once NT_CONTENT_IMAGES_PATH . 'includes/profiles/class-nt-content-images-site-profile.php';
+require_once NT_CONTENT_IMAGES_PATH . 'includes/profiles/class-nt-content-images-brand-profile.php';
+require_once NT_CONTENT_IMAGES_PATH . 'includes/profiles/class-nt-content-images-profile-validator.php';
+require_once NT_CONTENT_IMAGES_PATH . 'includes/profiles/class-nt-content-images-profile-repository.php';
+
+require_once NT_CONTENT_IMAGES_PATH . 'includes/seo/interface-nt-content-images-seo-adapter.php';
+require_once NT_CONTENT_IMAGES_PATH . 'includes/seo/class-nt-content-images-wordpress-seo-adapter.php';
+require_once NT_CONTENT_IMAGES_PATH . 'includes/seo/class-nt-content-images-yoast-seo-adapter.php';
+require_once NT_CONTENT_IMAGES_PATH . 'includes/seo/class-nt-content-images-rank-math-seo-adapter.php';
+require_once NT_CONTENT_IMAGES_PATH . 'includes/seo/class-nt-content-images-seo-adapter-manager.php';
 
 require_once NT_CONTENT_IMAGES_PATH . 'includes/audit/class-nt-content-images-audit-migrator.php';
 require_once NT_CONTENT_IMAGES_PATH . 'includes/audit/class-nt-content-images-audit-repository.php';
@@ -47,23 +68,14 @@ require_once NT_CONTENT_IMAGES_PATH . 'includes/brief/class-nt-content-images-br
 
 require_once NT_CONTENT_IMAGES_PATH . 'admin/class-nt-content-images-audit-admin.php';
 require_once NT_CONTENT_IMAGES_PATH . 'admin/class-nt-content-images-brief-admin.php';
+require_once NT_CONTENT_IMAGES_PATH . 'admin/class-nt-content-images-settings-admin.php';
 require_once NT_CONTENT_IMAGES_PATH . 'includes/class-nt-content-images-activator.php';
 require_once NT_CONTENT_IMAGES_PATH . 'includes/class-nt-content-images-deactivator.php';
 require_once NT_CONTENT_IMAGES_PATH . 'includes/class-nt-content-images.php';
 
-register_activation_hook(
-	__FILE__,
-	array( 'NT_Content_Images_Activator', 'activate' )
-);
+register_activation_hook( __FILE__, array( 'NT_Content_Images_Activator', 'activate' ) );
+register_deactivation_hook( __FILE__, array( 'NT_Content_Images_Deactivator', 'deactivate' ) );
 
-register_deactivation_hook(
-	__FILE__,
-	array( 'NT_Content_Images_Deactivator', 'deactivate' )
-);
-
-/**
- * Starts the plugin after all active plugins have loaded.
- */
 function nt_content_images_run(): void {
 	$plugin = new NT_Content_Images();
 	$plugin->run();
