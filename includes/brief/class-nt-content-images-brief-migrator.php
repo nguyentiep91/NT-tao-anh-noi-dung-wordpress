@@ -10,6 +10,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 final class NT_Content_Images_Brief_Migrator {
+	private const VERSION_OPTION = 'nt_content_images_brief_db_version';
+
 	/**
 	 * Returns the fully prefixed brief table name.
 	 */
@@ -23,7 +25,7 @@ final class NT_Content_Images_Brief_Migrator {
 	 * Runs the schema migration when required.
 	 */
 	public static function maybe_upgrade(): void {
-		$installed = (string) get_option( 'nt_content_images_db_version', '0' );
+		$installed = (string) get_option( self::VERSION_OPTION, '0' );
 
 		if ( version_compare( $installed, NT_CONTENT_IMAGES_DB_VERSION, '>=' ) ) {
 			return;
@@ -69,6 +71,6 @@ final class NT_Content_Images_Brief_Migrator {
 		) {$charset_collate};";
 
 		dbDelta( $sql );
-		update_option( 'nt_content_images_db_version', NT_CONTENT_IMAGES_DB_VERSION, false );
+		update_option( self::VERSION_OPTION, NT_CONTENT_IMAGES_DB_VERSION, false );
 	}
 }
