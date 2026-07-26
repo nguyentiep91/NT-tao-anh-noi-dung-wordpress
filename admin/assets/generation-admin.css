@@ -1,0 +1,174 @@
+.ntci-generation {
+	max-width: 1440px;
+}
+
+.ntci-generation-panel {
+	margin: 18px 0;
+	padding: 20px;
+	background: #fff;
+	border: 1px solid #dcdcde;
+	border-radius: 10px;
+	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.ntci-generation-panel h2 {
+	margin-top: 0;
+}
+
+.ntci-generation-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+	gap: 16px;
+	margin: 16px 0;
+}
+
+.ntci-generation-grid label {
+	display: flex;
+	flex-direction: column;
+	gap: 7px;
+	font-weight: 600;
+}
+
+.ntci-generation-grid input,
+.ntci-generation-grid select {
+	width: 100%;
+	max-width: none;
+}
+
+.ntci-generation-grid small,
+.ntci-generation .description {
+	color: #646970;
+	font-weight: 400;
+}
+
+.ntci-long-code {
+	display: block;
+	max-width: 100%;
+	overflow-wrap: anywhere;
+	white-space: normal;
+}
+
+.ntci-generation-heading,
+.ntci-generation-actions {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	flex-wrap: wrap;
+}
+
+.ntci-generation-heading {
+	justify-content: space-between;
+}
+
+.ntci-generation-canva-actions {
+	margin-top: 10px;
+	padding-top: 10px;
+	border-top: 1px solid #dcdcde;
+}
+
+.ntci-generation-table-wrap {
+	overflow-x: auto;
+	border: 1px solid #dcdcde;
+	border-radius: 8px;
+}
+
+.ntci-generation-feedback {
+	min-height: 24px;
+	margin: 12px 0;
+	font-weight: 600;
+}
+
+.ntci-generation-feedback--success {
+	color: #008a20;
+}
+
+.ntci-generation-feedback--error,
+.ntci-generation-error {
+	color: #b32d2e;
+}
+
+.ntci-generation-gallery {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+	gap: 18px;
+}
+
+.ntci-generation-card {
+	overflow: hidden;
+	background: #fff;
+	border: 1px solid #dcdcde;
+	border-radius: 10px;
+}
+
+.ntci-generation-card img,
+.ntci-generation-placeholder {
+	display: block;
+	width: 100%;
+	aspect-ratio: 16 / 9;
+	object-fit: cover;
+	background: #f0f0f1;
+}
+
+.ntci-generation-placeholder {
+	display: grid;
+	place-items: center;
+	color: #646970;
+}
+
+.ntci-generation-card-body {
+	padding: 16px;
+}
+
+.ntci-generation-card-body h3 {
+	margin-top: 0;
+}
+
+.ntci-generation-card pre {
+	max-height: 220px;
+	overflow: auto;
+	padding: 12px;
+	white-space: pre-wrap;
+	background: #f6f7f7;
+	border-radius: 6px;
+}
+
+.ntci-generation-badge {
+	display: inline-flex;
+	padding: 3px 9px;
+	border-radius: 999px;
+	background: #f0f0f1;
+	font-size: 12px;
+	font-weight: 700;
+}
+
+.ntci-generation-badge--generated {
+	background: #fcf9e8;
+	color: #805d00;
+}
+
+.ntci-generation-badge--approved {
+	background: #edfaef;
+	color: #008a20;
+}
+
+.ntci-generation-badge--rejected,
+.ntci-generation-badge--failed {
+	background: #fcf0f1;
+	color: #b32d2e;
+}
+
+@media (max-width: 782px) {
+	.ntci-generation-panel {
+		padding: 14px;
+	}
+
+	.ntci-generation-heading,
+	.ntci-generation-actions {
+		align-items: stretch;
+		flex-direction: column;
+	}
+
+	.ntci-generation-actions .button {
+		width: 100%;
+	}
+}
