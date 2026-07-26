@@ -51,12 +51,12 @@ final class NT_Content_Images_OpenRouter_Image_Provider implements NT_Content_Im
 			)
 		);
 		if ( is_wp_error( $response ) ) {
-			return new WP_Error( 'ntci_openrouter_models_transport', $response->get_error_message() );
+			return new WP_Error( 'ntci_openrouter_models_transport', NT_Content_Images_Secret_Redactor::redact_message( $response->get_error_message() ) );
 		}
 		$status = wp_remote_retrieve_response_code( $response );
 		$data = json_decode( wp_remote_retrieve_body( $response ), true );
 		if ( 200 !== $status || ! is_array( $data['data'] ?? null ) ) {
-			return new WP_Error( 'ntci_openrouter_models_failed', __( 'Không thể tải danh sách model ảnh từ OpenRouter.', 'nt-tao-anh-noi-dung-wordpress' ) );
+			return new WP_Error( 'ntci_openrouter_models_failed', __( 'Không thể tải danh sách model ảnh từ OpenRouter.', 'nt-tao-anh-noi-dung-wordpress' ), array( 'status' => $status ) );
 		}
 		$models = array();
 		foreach ( $data['data'] as $item ) {
@@ -108,13 +108,14 @@ final class NT_Content_Images_OpenRouter_Image_Provider implements NT_Content_Im
 			)
 		);
 		if ( is_wp_error( $response ) ) {
-			return new WP_Error( 'ntci_openrouter_transport_error', $response->get_error_message() );
+			return new WP_Error( 'ntci_openrouter_transport_error', NT_Content_Images_Secret_Redactor::redact_message( $response->get_error_message() ) );
 		}
 		$status = wp_remote_retrieve_response_code( $response );
 		$data = json_decode( wp_remote_retrieve_body( $response ), true );
 		if ( $status < 200 || $status >= 300 ) {
 			$message = is_array( $data ) ? (string) ( $data['error']['message'] ?? $data['message'] ?? '' ) : '';
-			return new WP_Error( 'ntci_openrouter_http_' . absint( $status ), '' !== $message ? sanitize_text_field( $message ) : __( 'OpenRouter không thể tạo ảnh.', 'nt-tao-anh-noi-dung-wordpress' ), array( 'status' => $status ) );
+			$message = NT_Content_Images_Secret_Redactor::redact_message( $message );
+			return new WP_Error( 'ntci_openrouter_http_' . absint( $status ), '' !== $message ? $message : __( 'OpenRouter không thể tạo ảnh.', 'nt-tao-anh-noi-dung-wordpress' ), array( 'status' => $status ) );
 		}
 		$item = is_array( $data['data'][0] ?? null ) ? $data['data'][0] : array();
 		$encoded = is_string( $item['b64_json'] ?? null ) ? $item['b64_json'] : '';
@@ -130,8 +131,8 @@ final class NT_Content_Images_OpenRouter_Image_Provider implements NT_Content_Im
 		$image_info = function_exists( 'getimagesizefromstring' ) ? getimagesizefromstring( $bytes ) : false;
 		$detected = is_array( $image_info ) ? sanitize_mime_type( (string) ( $image_info['mime'] ?? '' ) ) : '';
 		$mime = in_array( $media_type, array( 'image/png', 'image/jpeg', 'image/webp' ), true ) ? $media_type : $detected;
-		if ( ! in_array( $mime, array( 'image/png', 'image/jpeg', 'image/webp' ), true ) ) {
-			return new WP_Error( 'ntci_openrouter_mime_invalid', __( 'OpenRouter trả về định dạng ảnh không được hỗ trợ.', 'nt-tao-anh-noi-dung-wordpress' ) );
+		if ( ! in_array( $mime, array( 'image/png', 'image/jpeg', 'image/webp' ), true ) || ( '' !== $detected && $mime !== $detected ) ) {
+			return new WP_Error( 'ntci_openrouter_mime_invalid', __( 'OpenRouter trả về định dạng ảnh không hợp lệ hoặc MIME không khớp dữ liệu thật.', 'nt-tao-anh-noi-dung-wordpress' ) );
 		}
 		$extension = 'image/webp' === $mime ? 'webp' : ( 'image/jpeg' === $mime ? 'jpg' : 'png' );
 
@@ -142,7 +143,7 @@ final class NT_Content_Images_OpenRouter_Image_Provider implements NT_Content_Im
 			'provider'       => $this->get_id(),
 			'model'          => sanitize_text_field( $model ),
 			'revised_prompt' => '',
-			'usage'          => is_array( $data['usage'] ?? null ) ? $data['usage'] : array(),
+			'usage'          => is_array( $data['usage'] ?? null ) ? NT_Content_Images_Secret_Redactor::redact( $data['usage'] ) : array(),
 			'created'        => absint( $data['created'] ?? time() ),
 		);
 	}
