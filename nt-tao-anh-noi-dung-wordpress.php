@@ -16,10 +16,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-const NT_CONTENT_IMAGES_VERSION = '0.1.0';
-const NT_CONTENT_IMAGES_FILE    = __FILE__;
-const NT_CONTENT_IMAGES_PATH    = __DIR__ . '/';
-const NT_CONTENT_IMAGES_URL     = plugin_dir_url( __FILE__ );
+define( 'NT_CONTENT_IMAGES_VERSION', '0.1.0' );
+define( 'NT_CONTENT_IMAGES_FILE', __FILE__ );
+define( 'NT_CONTENT_IMAGES_PATH', plugin_dir_path( __FILE__ ) );
+define( 'NT_CONTENT_IMAGES_URL', plugin_dir_url( __FILE__ ) );
 
 require_once NT_CONTENT_IMAGES_PATH . 'includes/class-nt-content-images-activator.php';
 require_once NT_CONTENT_IMAGES_PATH . 'includes/class-nt-content-images-deactivator.php';
