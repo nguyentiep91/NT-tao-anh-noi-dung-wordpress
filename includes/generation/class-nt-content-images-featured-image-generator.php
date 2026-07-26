@@ -13,7 +13,7 @@ final class NT_Content_Images_Featured_Image_Generator {
 	private NT_Content_Images_Brief_Generator $brief_generator;
 	private NT_Content_Images_Brief_Repository $briefs;
 	private NT_Content_Images_Featured_Prompt_Builder $prompts;
-	private NT_Content_Images_Image_Provider_Interface $provider;
+	private NT_Content_Images_Image_Provider_Manager $providers;
 	private NT_Content_Images_Media_Manager $media;
 	private NT_Content_Images_Generation_Repository $repository;
 	private NT_Content_Images_Generation_Settings $settings;
@@ -23,7 +23,7 @@ final class NT_Content_Images_Featured_Image_Generator {
 		NT_Content_Images_Brief_Generator $brief_generator,
 		NT_Content_Images_Brief_Repository $briefs,
 		NT_Content_Images_Featured_Prompt_Builder $prompts,
-		NT_Content_Images_Image_Provider_Interface $provider,
+		NT_Content_Images_Image_Provider_Manager $providers,
 		NT_Content_Images_Media_Manager $media,
 		NT_Content_Images_Generation_Repository $repository,
 		NT_Content_Images_Generation_Settings $settings,
@@ -32,7 +32,7 @@ final class NT_Content_Images_Featured_Image_Generator {
 		$this->brief_generator = $brief_generator;
 		$this->briefs          = $briefs;
 		$this->prompts         = $prompts;
-		$this->provider        = $provider;
+		$this->providers       = $providers;
 		$this->media           = $media;
 		$this->repository      = $repository;
 		$this->settings        = $settings;
@@ -46,14 +46,18 @@ final class NT_Content_Images_Featured_Image_Generator {
 			return new WP_Error( 'ntci_generation_post_invalid', __( 'Nội dung không hợp lệ.', 'nt-tao-anh-noi-dung-wordpress' ) );
 		}
 		if ( get_post_thumbnail_id( $post_id ) ) {
-			return new WP_Error( 'ntci_generation_featured_exists', __( 'Nội dung này đã có ảnh đại diện. MVP không tự ghi đè ảnh hiện có.', 'nt-tao-anh-noi-dung-wordpress' ) );
+			return new WP_Error( 'ntci_generation_featured_exists', __( 'Nội dung này đã có ảnh đại diện. Plugin không tự ghi đè ảnh hiện có.', 'nt-tao-anh-noi-dung-wordpress' ) );
 		}
 		$site = $this->profiles->get_site_profile();
 		if ( ! in_array( $post->post_type, (array) ( $site['enabled_post_types'] ?? array() ), true ) ) {
 			return new WP_Error( 'ntci_generation_post_type_disabled', __( 'Post type này chưa được bật trong Cấu hình website.', 'nt-tao-anh-noi-dung-wordpress' ) );
 		}
-		if ( ! $this->provider->is_configured() ) {
-			return new WP_Error( 'ntci_generation_provider_missing', __( 'Chưa cấu hình API key cho nhà cung cấp ảnh.', 'nt-tao-anh-noi-dung-wordpress' ) );
+		$provider = $this->providers->get_active();
+		if ( is_wp_error( $provider ) ) {
+			return $provider;
+		}
+		if ( ! $provider->is_configured() ) {
+			return new WP_Error( 'ntci_generation_provider_missing', __( 'Chưa cấu hình API key cho nhà cung cấp ảnh đang chọn.', 'nt-tao-anh-noi-dung-wordpress' ) );
 		}
 
 		$latest   = $this->briefs->get_latest_by_post_id( $post_id );
@@ -76,7 +80,7 @@ final class NT_Content_Images_Featured_Image_Generator {
 
 		$prompt   = $this->prompts->build( $brief );
 		$config   = $this->settings->get();
-		$response = $this->provider->generate(
+		$response = $provider->generate(
 			array(
 				'post_id'  => $post_id,
 				'brief_id' => $brief_id,
@@ -86,15 +90,15 @@ final class NT_Content_Images_Featured_Image_Generator {
 		if ( is_wp_error( $response ) ) {
 			$this->repository->insert(
 				array(
-					'post_id'      => $post_id,
-					'brief_id'     => $brief_id,
-					'provider'     => $this->provider->get_id(),
-					'model'        => $config['model'],
-					'status'       => 'failed',
-					'prompt'       => $prompt,
-					'settings'     => $this->public_settings( $config ),
-					'error_code'   => $response->get_error_code(),
-					'error_message'=> $response->get_error_message(),
+					'post_id'       => $post_id,
+					'brief_id'      => $brief_id,
+					'provider'      => $provider->get_id(),
+					'model'         => $config['model'],
+					'status'        => 'failed',
+					'prompt'        => $prompt,
+					'settings'      => $this->public_settings( $config ),
+					'error_code'    => $response->get_error_code(),
+					'error_message' => $response->get_error_message(),
 				)
 			);
 			return $response;
@@ -127,7 +131,6 @@ final class NT_Content_Images_Featured_Image_Generator {
 		}
 		update_post_meta( absint( $stored['attachment_id'] ), '_nt_content_images_generation_id', $record_id );
 		do_action( 'nt_content_images_after_generate', $record_id, $post_id, $stored['attachment_id'] );
-
 		return $this->repository->get( $record_id );
 	}
 
