@@ -35,6 +35,19 @@
 	max-width: none;
 }
 
+.ntci-generation-grid small,
+.ntci-generation .description {
+	color: #646970;
+	font-weight: 400;
+}
+
+.ntci-long-code {
+	display: block;
+	max-width: 100%;
+	overflow-wrap: anywhere;
+	white-space: normal;
+}
+
 .ntci-generation-heading,
 .ntci-generation-actions {
 	display: flex;
@@ -45,6 +58,12 @@
 
 .ntci-generation-heading {
 	justify-content: space-between;
+}
+
+.ntci-generation-canva-actions {
+	margin-top: 10px;
+	padding-top: 10px;
+	border-top: 1px solid #dcdcde;
 }
 
 .ntci-generation-table-wrap {
