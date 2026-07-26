@@ -12,7 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 final class NT_Content_Images_Canva_OAuth {
 	private const AUTHORIZE_ENDPOINT = 'https://www.canva.com/api/oauth/authorize';
 	private const TOKEN_ENDPOINT = 'https://api.canva.com/rest/v1/oauth/token';
-	private const SCOPES = 'asset:read asset:write design:content:read design:content:write design:meta:read';
+	private const SCOPES = 'asset:read asset:write design:content:read design:content:write';
 
 	private NT_Content_Images_Canva_Settings $settings;
 
@@ -40,7 +40,7 @@ final class NT_Content_Images_Canva_OAuth {
 		return add_query_arg(
 			array(
 				'code_challenge'        => $challenge,
-				'code_challenge_method' => 's256',
+				'code_challenge_method' => 'S256',
 				'scope'                 => self::SCOPES,
 				'response_type'         => 'code',
 				'client_id'             => $this->settings->get_client_id(),
@@ -58,6 +58,9 @@ final class NT_Content_Images_Canva_OAuth {
 		delete_transient( 'ntci_canva_oauth_' . md5( $state ) );
 		if ( '' === $state || ! is_array( $flow ) || absint( $flow['user_id'] ?? 0 ) !== absint( $user_id ) ) {
 			return new WP_Error( 'ntci_canva_oauth_state_invalid', __( 'Phiên kết nối Canva không hợp lệ hoặc đã hết hạn.', 'nt-tao-anh-noi-dung-wordpress' ) );
+		}
+		if ( '' === trim( $code ) ) {
+			return new WP_Error( 'ntci_canva_oauth_code_missing', __( 'Canva không trả về authorization code.', 'nt-tao-anh-noi-dung-wordpress' ) );
 		}
 		$result = $this->token_request(
 			array(
