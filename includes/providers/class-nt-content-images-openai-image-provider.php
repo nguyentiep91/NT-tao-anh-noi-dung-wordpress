@@ -23,13 +23,25 @@ final class NT_Content_Images_OpenAI_Image_Provider implements NT_Content_Images
 		return 'openai';
 	}
 
+	public function get_label(): string {
+		return 'OpenAI Images';
+	}
+
 	public function is_configured(): bool {
-		return '' !== $this->settings->get_api_key();
+		return '' !== $this->settings->get_api_key( 'openai' );
+	}
+
+	/** @return array<int, array{id: string, name: string}> */
+	public function list_models(): array {
+		return array(
+			array( 'id' => 'gpt-image-1-mini', 'name' => 'gpt-image-1-mini' ),
+			array( 'id' => 'gpt-image-1', 'name' => 'gpt-image-1' ),
+		);
 	}
 
 	/** @return array<string, mixed>|WP_Error */
 	public function generate( array $request ) {
-		$api_key = $this->settings->get_api_key();
+		$api_key = $this->settings->get_api_key( 'openai' );
 		if ( '' === $api_key ) {
 			return new WP_Error( 'ntci_openai_key_missing', __( 'Chưa cấu hình OpenAI API key.', 'nt-tao-anh-noi-dung-wordpress' ) );
 		}
@@ -41,7 +53,7 @@ final class NT_Content_Images_OpenAI_Image_Provider implements NT_Content_Images
 		}
 
 		$body = array(
-			'model'         => $config['model'],
+			'model'         => $config['openai_model'],
 			'prompt'        => $prompt,
 			'size'          => $config['size'],
 			'quality'       => $config['quality'],
@@ -72,11 +84,7 @@ final class NT_Content_Images_OpenAI_Image_Provider implements NT_Content_Images
 		$data   = json_decode( wp_remote_retrieve_body( $response ), true );
 		if ( $status < 200 || $status >= 300 ) {
 			$message = is_array( $data ) ? (string) ( $data['error']['message'] ?? '' ) : '';
-			return new WP_Error(
-				'ntci_openai_http_' . absint( $status ),
-				'' !== $message ? sanitize_text_field( $message ) : __( 'OpenAI không thể tạo ảnh.', 'nt-tao-anh-noi-dung-wordpress' ),
-				array( 'status' => $status )
-			);
+			return new WP_Error( 'ntci_openai_http_' . absint( $status ), '' !== $message ? sanitize_text_field( $message ) : __( 'OpenAI không thể tạo ảnh.', 'nt-tao-anh-noi-dung-wordpress' ), array( 'status' => $status ) );
 		}
 		if ( ! is_array( $data ) || ! is_array( $data['data'][0] ?? null ) ) {
 			return new WP_Error( 'ntci_openai_response_invalid', __( 'OpenAI trả về dữ liệu ảnh không hợp lệ.', 'nt-tao-anh-noi-dung-wordpress' ) );
@@ -98,14 +106,14 @@ final class NT_Content_Images_OpenAI_Image_Provider implements NT_Content_Images
 		}
 
 		return array(
-			'bytes'         => $bytes,
-			'mime_type'     => 'image/webp',
-			'extension'     => 'webp',
-			'provider'      => $this->get_id(),
-			'model'         => sanitize_text_field( (string) $config['model'] ),
-			'revised_prompt'=> sanitize_textarea_field( (string) ( $item['revised_prompt'] ?? '' ) ),
-			'usage'         => is_array( $data['usage'] ?? null ) ? $data['usage'] : array(),
-			'created'       => absint( $data['created'] ?? time() ),
+			'bytes'          => $bytes,
+			'mime_type'      => 'image/webp',
+			'extension'      => 'webp',
+			'provider'       => $this->get_id(),
+			'model'          => sanitize_text_field( (string) $config['openai_model'] ),
+			'revised_prompt' => sanitize_textarea_field( (string) ( $item['revised_prompt'] ?? '' ) ),
+			'usage'          => is_array( $data['usage'] ?? null ) ? $data['usage'] : array(),
+			'created'        => absint( $data['created'] ?? time() ),
 		);
 	}
 }
