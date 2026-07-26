@@ -22,6 +22,9 @@ define( 'NT_CONTENT_IMAGES_FILE', __FILE__ );
 define( 'NT_CONTENT_IMAGES_PATH', plugin_dir_path( __FILE__ ) );
 define( 'NT_CONTENT_IMAGES_URL', plugin_dir_url( __FILE__ ) );
 
+require_once NT_CONTENT_IMAGES_PATH . 'includes/security/class-nt-content-images-secret-redactor.php';
+require_once NT_CONTENT_IMAGES_PATH . 'includes/logging/class-nt-content-images-safe-logger.php';
+
 require_once NT_CONTENT_IMAGES_PATH . 'includes/core/class-nt-content-images-post-type-registry.php';
 require_once NT_CONTENT_IMAGES_PATH . 'includes/core/class-nt-content-images-content-type-mapper.php';
 
@@ -69,6 +72,7 @@ require_once NT_CONTENT_IMAGES_PATH . 'includes/brief/class-nt-content-images-br
 require_once NT_CONTENT_IMAGES_PATH . 'includes/generation/class-nt-content-images-generation-settings.php';
 require_once NT_CONTENT_IMAGES_PATH . 'includes/generation/class-nt-content-images-generation-migrator.php';
 require_once NT_CONTENT_IMAGES_PATH . 'includes/generation/class-nt-content-images-generation-repository.php';
+require_once NT_CONTENT_IMAGES_PATH . 'includes/generation/class-nt-content-images-generation-lock.php';
 require_once NT_CONTENT_IMAGES_PATH . 'includes/generation/class-nt-content-images-featured-prompt-builder.php';
 require_once NT_CONTENT_IMAGES_PATH . 'includes/providers/interface-nt-content-images-image-provider.php';
 require_once NT_CONTENT_IMAGES_PATH . 'includes/providers/class-nt-content-images-openai-image-provider.php';
