@@ -14,6 +14,7 @@
 	const refresh = document.querySelector( '#ntci-generation-refresh' );
 	const providerSelect = document.querySelector( '#ntci-provider' );
 	const openRouterList = document.querySelector( '#ntci-openrouter-models' );
+	const openRouterInput = document.querySelector( '#ntci-openrouter-model' );
 	let busy = false;
 
 	function request( path, method, data ) {
@@ -25,25 +26,43 @@
 	}
 
 	function setFeedback( message, type ) {
+		if ( ! feedback ) {
+			return;
+		}
 		feedback.textContent = message || '';
 		feedback.className = 'ntci-generation-feedback' + ( type ? ' ntci-generation-feedback--' + type : '' );
 	}
 
 	async function loadOpenRouterModels() {
-		if ( ! openRouterList ) {
+		if ( ! openRouterList || ! openRouterInput ) {
 			return;
 		}
+		openRouterList.innerHTML = '';
+		setFeedback( 'Đang kiểm tra OpenRouter API key và tải danh sách model ảnh…' );
 		try {
 			const data = await request( '/generations/providers/openrouter/models' );
-			openRouterList.innerHTML = ( data.items || [] ).map( function ( item ) {
+			const items = Array.isArray( data.items ) ? data.items : [];
+			if ( ! items.length ) {
+				setFeedback( 'OpenRouter không trả về model ảnh khả dụng cho API key này.', 'error' );
+				return;
+			}
+			openRouterList.innerHTML = items.map( function ( item ) {
 				return '<option value="' + escapeHtml( item.id ) + '">' + escapeHtml( item.name ) + '</option>';
 			} ).join( '' );
+			if ( ! openRouterInput.value ) {
+				openRouterInput.value = String( items[ 0 ].id || '' );
+			}
+			setFeedback( 'Đã tải ' + items.length + ' model ảnh OpenRouter. Kiểm tra model đã chọn rồi bấm Lưu cấu hình tạo ảnh.', 'success' );
 		} catch ( error ) {
 			openRouterList.innerHTML = '';
+			setFeedback( error.message || 'Không thể tải danh sách model ảnh OpenRouter. Kiểm tra API key rồi lưu lại.', 'error' );
 		}
 	}
 
 	async function loadCandidates() {
+		if ( ! candidatesBody ) {
+			return;
+		}
 		candidatesBody.innerHTML = '<tr><td colspan="5">Đang tải…</td></tr>';
 		try {
 			const data = await request( '/generations/candidates?limit=30' );
@@ -78,6 +97,9 @@
 	}
 
 	async function loadGenerations() {
+		if ( ! gallery ) {
+			return;
+		}
 		gallery.innerHTML = '<p>Đang tải…</p>';
 		try {
 			const data = await request( '/generations?per_page=30' );
