@@ -228,8 +228,10 @@ final class NT_Content_Images_Content_Image_Generator {
 			}
 			update_post_meta( absint( $stored['attachment_id'] ), '_nt_content_images_generation_id', $record_id );
 			$this->logger->log( 'info', 'content_generation_completed', array( 'generation_id' => $record_id, 'post_id' => $post_id, 'index' => $index ) );
+			// Đọc record trước khi bắn action: auto-cleanup có thể xoá bản gốc ngay sau khi chèn chữ.
+			$generated_record = $this->repository->get( $record_id );
 			do_action( 'nt_content_images_after_content_generate', $record_id, $post_id, absint( $stored['attachment_id'] ) );
-			$generated[] = $this->repository->get( $record_id );
+			$generated[] = $generated_record;
 		}
 
 		if ( array() === $generated && array() !== $errors ) {

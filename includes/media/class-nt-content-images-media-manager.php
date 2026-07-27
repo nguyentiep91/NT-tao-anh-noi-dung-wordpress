@@ -111,6 +111,16 @@ final class NT_Content_Images_Media_Manager {
 			}
 		}
 
+		/**
+		 * Chống trùng lặp: cùng bài viết, cùng kích thước đích và cùng byte ảnh
+		 * thì tái sử dụng attachment sẵn có thay vì tạo file mới trong Media Library.
+		 */
+		$bytes_hash = hash( 'sha256', $post_id . '|' . absint( $settings['target_width'] ?? 1280 ) . 'x' . absint( $settings['target_height'] ?? 720 ) . '|' . $bytes );
+		$existing   = $this->find_reusable_duplicate( $bytes_hash );
+		if ( null !== $existing ) {
+			return $existing;
+		}
+
 		$extension = 'image/png' === $detected_mime ? 'png' : ( 'image/jpeg' === $detected_mime ? 'jpg' : 'webp' );
 		$slug = sanitize_title( get_the_title( $post ) );
 		$suffix = sanitize_key( (string) ( $metadata['provider'] ?? $metadata['source_kind'] ?? 'image' ) );
@@ -153,6 +163,7 @@ final class NT_Content_Images_Media_Manager {
 		update_post_meta( $attachment_id, '_wp_attachment_image_alt', sanitize_text_field( $alt_text ) );
 		update_post_meta( $attachment_id, '_nt_content_images_generated', 'ai' === (string) ( $metadata['source_kind'] ?? '' ) ? '1' : '0' );
 		update_post_meta( $attachment_id, '_nt_content_images_source_post_id', $post_id );
+		update_post_meta( $attachment_id, '_ntci_bytes_hash', $bytes_hash );
 		$text_meta = array(
 			'_ntci_source_kind'              => $metadata['source_kind'] ?? '',
 			'_ntci_source_provider'          => $metadata['provider'] ?? '',
@@ -189,6 +200,40 @@ final class NT_Content_Images_Media_Manager {
 			'height'        => is_array( $final_info ) ? absint( $final_info[1] ?? 0 ) : absint( $info[1] ?? 0 ),
 			'file_size'     => false === $final_size ? strlen( $bytes ) : absint( $final_size ),
 			'checksum'      => is_string( $final_checksum ) ? $final_checksum : hash( 'sha256', $bytes ),
+		);
+	}
+
+	/**
+	 * Finds an existing plugin attachment holding exactly the same image bytes.
+	 *
+	 * @return array<string, mixed>|null Same shape as store_candidate() result, null when no duplicate.
+	 */
+	private function find_reusable_duplicate( string $bytes_hash ): ?array {
+		global $wpdb;
+		$sql = $wpdb->prepare(
+			"SELECT pm.post_id FROM {$wpdb->postmeta} pm INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id AND p.post_type = 'attachment' WHERE pm.meta_key = '_ntci_bytes_hash' AND pm.meta_value = %s ORDER BY pm.post_id DESC LIMIT 1",
+			$bytes_hash
+		);
+		$attachment_id = absint( $wpdb->get_var( $sql ) ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery
+		if ( $attachment_id < 1 ) {
+			return null;
+		}
+		$file = (string) get_attached_file( $attachment_id );
+		if ( '' === $file || ! file_exists( $file ) ) {
+			return null;
+		}
+		$info     = @getimagesize( $file ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+		$checksum = hash_file( 'sha256', $file );
+		return array(
+			'attachment_id' => $attachment_id,
+			'file'          => $file,
+			'url'           => wp_get_attachment_url( $attachment_id ),
+			'mime_type'     => (string) get_post_mime_type( $attachment_id ),
+			'width'         => is_array( $info ) ? absint( $info[0] ?? 0 ) : 0,
+			'height'        => is_array( $info ) ? absint( $info[1] ?? 0 ) : 0,
+			'file_size'     => absint( (int) filesize( $file ) ),
+			'checksum'      => is_string( $checksum ) ? $checksum : '',
+			'reused'        => true,
 		);
 	}
 

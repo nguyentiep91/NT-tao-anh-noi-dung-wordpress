@@ -94,10 +94,12 @@ Mục tiêu: repository có cấu trúc rõ ràng, plugin kích hoạt an toàn 
 
 ## Phase 5 — Xử lý ảnh và Media Library
 
-- [ ] Resize/crop preset.
-- [ ] WebP và nén ảnh.
-- [ ] SEO filename, alt text và caption.
-- [ ] Upload attachment và kiểm tra ảnh trùng.
+- [x] Resize/crop về kích thước đích khi lưu.
+- [x] WebP và nén ảnh (0.11.0).
+- [x] SEO filename, alt text và caption (0.10.0).
+- [x] Upload attachment và kiểm tra ảnh trùng bằng hash (0.12.0).
+- [x] Tự dọn ảnh trung gian không dùng: bản gốc sau chèn chữ, ảnh bị từ chối, ứng viên thừa sau chèn/duyệt (0.12.0).
+- [x] Nút "Dọn ảnh không dùng" quét toàn bộ Media Library, chỉ giữ ảnh đang dùng (0.12.0).
 
 ## Phase 6 — Template chữ và thương hiệu
 

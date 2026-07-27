@@ -46,6 +46,7 @@ final class NT_Content_Images_Generation_Settings {
 			'timeout'                 => min( 300, max( 60, absint( $raw['timeout'] ?? 180 ) ) ),
 			'cloudflare_daily_limit'  => min( 500, max( 1, absint( $raw['cloudflare_daily_limit'] ?? 100 ) ) ),
 			'daily_limit'             => min( 1000, max( 1, absint( $raw['daily_limit'] ?? 100 ) ) ),
+			'auto_cleanup'            => ! isset( $raw['auto_cleanup'] ) || ! empty( $raw['auto_cleanup'] ),
 		);
 	}
 
@@ -80,6 +81,7 @@ final class NT_Content_Images_Generation_Settings {
 		$timeout = min( 300, max( 60, absint( $raw['timeout'] ?? $current['timeout'] ) ) );
 		$cloudflare_daily_limit = min( 500, max( 1, absint( $raw['cloudflare_daily_limit'] ?? $current['cloudflare_daily_limit'] ) ) );
 		$daily_limit = min( 1000, max( 1, absint( $raw['daily_limit'] ?? $current['daily_limit'] ) ) );
+		$auto_cleanup = array_key_exists( 'auto_cleanup', $raw ) ? ! empty( $raw['auto_cleanup'] ) : ! empty( $current['auto_cleanup'] );
 
 		if ( ! in_array( $provider, array( 'openai', 'openrouter', 'cloudflare', 'fal' ), true ) ) {
 			return new WP_Error( 'ntci_generation_invalid_provider', __( 'Nhà cung cấp tạo ảnh không hợp lệ.', 'nt-tao-anh-noi-dung-wordpress' ) );
@@ -111,6 +113,7 @@ final class NT_Content_Images_Generation_Settings {
 				'timeout'                => $timeout,
 				'cloudflare_daily_limit' => $cloudflare_daily_limit,
 				'daily_limit'            => $daily_limit,
+				'auto_cleanup'           => $auto_cleanup ? 1 : 0,
 			),
 			false
 		);

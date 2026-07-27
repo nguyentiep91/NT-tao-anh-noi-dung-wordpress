@@ -63,6 +63,7 @@ foreach (
 }
 
 $wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->postmeta} WHERE meta_key = %s", '_ntci_content_snapshot' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+$wpdb->query( $wpdb->prepare( "DELETE FROM {$wpdb->postmeta} WHERE meta_key = %s", '_ntci_bytes_hash' ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
 
 $lock_like = $wpdb->esc_like( 'nt_content_images_generation_lock_' ) . '%';
 $lock_sql = $wpdb->prepare( "DELETE FROM {$wpdb->options} WHERE option_name LIKE %s", $lock_like );

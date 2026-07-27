@@ -202,6 +202,10 @@ final class NT_Content_Images_Generation_Admin {
 					<?php if ( 'database' === $config['providers']['fal']['key_source'] ) : ?><label><input type="checkbox" name="generation_settings[clear_fal_api_key]" value="1"> <?php echo esc_html__( 'Xóa fal.ai key trong database', 'nt-tao-anh-noi-dung-wordpress' ); ?></label><br><?php endif; ?>
 					<?php if ( 'database' === $config['providers']['openai']['key_source'] ) : ?><label><input type="checkbox" name="generation_settings[clear_openai_api_key]" value="1"> <?php echo esc_html__( 'Xóa OpenAI key trong database', 'nt-tao-anh-noi-dung-wordpress' ); ?></label><br><?php endif; ?>
 					<?php if ( 'database' === $config['providers']['openrouter']['key_source'] ) : ?><label><input type="checkbox" name="generation_settings[clear_openrouter_api_key]" value="1"> <?php echo esc_html__( 'Xóa OpenRouter key trong database', 'nt-tao-anh-noi-dung-wordpress' ); ?></label><?php endif; ?>
+					<p style="margin-top:12px;">
+						<input type="hidden" name="generation_settings[auto_cleanup]" value="0">
+						<label><input type="checkbox" name="generation_settings[auto_cleanup]" value="1" <?php checked( ! empty( $config['auto_cleanup'] ) ); ?>> <strong><?php echo esc_html__( 'Tự động dọn ảnh trung gian không dùng', 'nt-tao-anh-noi-dung-wordpress' ); ?></strong> — <?php echo esc_html__( 'xoá ảnh nền gốc sau khi đã chèn chữ, ảnh bị từ chối và ảnh thừa sau khi chèn/duyệt. Media Library chỉ giữ ảnh thật sự dùng.', 'nt-tao-anh-noi-dung-wordpress' ); ?></label>
+					</p>
 					<p class="description"><?php echo esc_html__( 'Production nên dùng credential constants trong wp-config.php. fal.ai hiện polling trong request quản trị; chưa dùng cho batch lớn.', 'nt-tao-anh-noi-dung-wordpress' ); ?></p>
 					<?php submit_button( __( 'Lưu cấu hình tạo ảnh', 'nt-tao-anh-noi-dung-wordpress' ) ); ?>
 				</form>

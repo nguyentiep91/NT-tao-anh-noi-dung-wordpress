@@ -38,6 +38,7 @@ final class NT_Content_Images_Content_Admin {
 					'confirmRollback' => __( 'Khôi phục nội dung bài về trạng thái trước khi chèn ảnh?', 'nt-tao-anh-noi-dung-wordpress' ),
 				'confirmQueue'    => __( 'Bắt đầu chạy hàng loạt? Mỗi ảnh là một yêu cầu API có thể phát sinh chi phí. Đợt chạy tự dừng khi chạm giới hạn ảnh/ngày.', 'nt-tao-anh-noi-dung-wordpress' ),
 				'confirmQueueCancel' => __( 'Hủy đợt chạy hàng loạt hiện tại?', 'nt-tao-anh-noi-dung-wordpress' ),
+				'confirmCleanup'  => __( 'Dọn Media Library? Mọi ảnh do plugin tạo mà KHÔNG được chèn vào bài và KHÔNG làm ảnh đại diện sẽ bị xoá vĩnh viễn — gồm cả ảnh đang chờ duyệt. Ảnh đang dùng và ảnh anh tự tải lên được giữ nguyên.', 'nt-tao-anh-noi-dung-wordpress' ),
 					'networkError'    => __( 'Không thể kết nối tới WordPress REST API.', 'nt-tao-anh-noi-dung-wordpress' ),
 				),
 			)
@@ -73,6 +74,17 @@ final class NT_Content_Images_Content_Admin {
 					<ul id="ntci-queue-items" class="ntci-queue-items"></ul>
 				</div>
 				<p class="description" id="ntci-queue-usage"></p>
+			</section>
+
+			<section class="ntci-content-panel">
+				<div class="ntci-content-heading">
+					<div>
+						<h2><?php echo esc_html__( 'Dọn ảnh không dùng', 'nt-tao-anh-noi-dung-wordpress' ); ?></h2>
+						<p><?php echo esc_html__( 'Chỉ giữ ảnh đã chèn vào bài hoặc đang làm ảnh đại diện. Ảnh trung gian (bản gốc chưa chèn chữ, ảnh bị từ chối, ảnh thừa sau khi chèn) được tự dọn ngay trong quy trình; nút này quét và xoá toàn bộ phần còn sót.', 'nt-tao-anh-noi-dung-wordpress' ); ?></p>
+					</div>
+					<button type="button" class="button" id="ntci-cleanup-run"><?php echo esc_html__( 'Dọn ảnh không dùng', 'nt-tao-anh-noi-dung-wordpress' ); ?></button>
+				</div>
+				<p class="description" id="ntci-cleanup-result"></p>
 			</section>
 
 			<section class="ntci-content-panel">

@@ -95,6 +95,30 @@ final class NT_Content_Images_Generation_Repository {
 		return array_map( array( $this, 'hydrate' ), is_array( $rows ) ? $rows : array() );
 	}
 
+	/** @return array<int, array<string, mixed>> Lightweight rows (no join) for cleanup sweeps. */
+	public function get_all_light(): array {
+		global $wpdb;
+		$table = NT_Content_Images_Generation_Migrator::get_table_name();
+		$rows  = $wpdb->get_results( "SELECT id, post_id, attachment_id, status, settings_json FROM {$table} ORDER BY id ASC", ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery
+		$items = array();
+		foreach ( is_array( $rows ) ? $rows : array() as $row ) {
+			$items[] = array(
+				'id'            => absint( $row['id'] ?? 0 ),
+				'post_id'       => absint( $row['post_id'] ?? 0 ),
+				'attachment_id' => absint( $row['attachment_id'] ?? 0 ),
+				'status'        => sanitize_key( (string) ( $row['status'] ?? '' ) ),
+				'settings'      => json_decode( (string) ( $row['settings_json'] ?? '' ), true ) ?: array(),
+			);
+		}
+		return $items;
+	}
+
+	/** Permanently removes one generation record row. */
+	public function delete( int $id ): bool {
+		global $wpdb;
+		return (bool) $wpdb->delete( NT_Content_Images_Generation_Migrator::get_table_name(), array( 'id' => absint( $id ) ), array( '%d' ) );
+	}
+
 	public function update_status( int $id, string $status ): int|false {
 		global $wpdb;
 		$status = sanitize_key( $status );

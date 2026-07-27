@@ -331,6 +331,35 @@
 		} );
 	}
 
+	const cleanupButton = document.querySelector( '#ntci-cleanup-run' );
+	const cleanupResult = document.querySelector( '#ntci-cleanup-result' );
+	if ( cleanupButton ) {
+		cleanupButton.addEventListener( 'click', async function () {
+			if ( ! window.confirm( config.labels.confirmCleanup ) ) {
+				return;
+			}
+			cleanupButton.disabled = true;
+			cleanupButton.textContent = 'Đang dọn…';
+			try {
+				const data = await request( '/content-images/cleanup', 'POST', {} );
+				const freedMb = ( Number( data.freed_bytes || 0 ) / 1048576 ).toFixed( 1 );
+				const message = 'Đã xoá ' + Number( data.deleted_attachments || 0 ) + ' ảnh (' + freedMb + ' MB), dọn ' + Number( data.deleted_records || 0 ) + ' bản ghi; giữ lại ' + Number( data.kept || 0 ) + ' ảnh đang dùng.';
+				if ( cleanupResult ) {
+					cleanupResult.textContent = message;
+				}
+				setFeedback( message, 'success' );
+				loadCandidates();
+				if ( currentPostId ) {
+					openPlan( currentPostId );
+				}
+			} catch ( error ) {
+				setFeedback( error.message || config.labels.networkError, 'error' );
+			}
+			cleanupButton.disabled = false;
+			cleanupButton.textContent = 'Dọn ảnh không dùng';
+		} );
+	}
+
 	loadCandidates();
 	refreshQueueStatus();
 }() );

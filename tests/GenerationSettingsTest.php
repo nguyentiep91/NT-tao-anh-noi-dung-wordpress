@@ -84,4 +84,19 @@ final class GenerationSettingsTest extends TestCase {
 		self::assertInstanceOf( WP_Error::class, $result );
 		self::assertSame( 'ntci_generation_openrouter_model_missing', $result->get_error_code() );
 	}
+
+	public function test_auto_cleanup_defaults_on_and_can_be_disabled(): void {
+		$settings = new NT_Content_Images_Generation_Settings();
+		self::assertTrue( $settings->get()['auto_cleanup'] );
+
+		$settings->save( array( 'auto_cleanup' => '0' ) );
+		self::assertFalse( $settings->get()['auto_cleanup'] );
+
+		// Lưu payload không có khóa auto_cleanup thì giữ nguyên lựa chọn cũ.
+		$settings->save( array( 'quality' => 'high' ) );
+		self::assertFalse( $settings->get()['auto_cleanup'] );
+
+		$settings->save( array( 'auto_cleanup' => '1' ) );
+		self::assertTrue( $settings->get()['auto_cleanup'] );
+	}
 }

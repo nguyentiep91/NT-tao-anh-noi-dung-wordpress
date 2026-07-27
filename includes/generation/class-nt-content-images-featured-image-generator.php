@@ -205,8 +205,10 @@ final class NT_Content_Images_Featured_Image_Generator {
 				'model'         => sanitize_text_field( (string) $response['model'] ),
 			)
 		);
+		// Đọc record trước khi bắn action: auto-cleanup có thể xoá bản gốc ngay sau khi chèn chữ.
+		$result = $this->repository->get( $record_id );
 		do_action( 'nt_content_images_after_generate', $record_id, $post_id, $stored['attachment_id'] );
-		return $this->repository->get( $record_id );
+		return $result;
 	}
 
 	/** @return array<string, mixed>|WP_Error */
@@ -248,7 +250,10 @@ final class NT_Content_Images_Featured_Image_Generator {
 		}
 		$this->repository->update_status( $generation_id, 'rejected' );
 		$this->logger->log( 'info', 'generation_rejected', array( 'generation_id' => $generation_id, 'post_id' => absint( $item['post_id'] ) ) );
-		return $this->repository->get( $generation_id );
+		// Đọc record trước khi bắn action: auto-cleanup có thể xoá luôn ảnh vừa bị từ chối.
+		$result = $this->repository->get( $generation_id );
+		do_action( 'nt_content_images_after_reject', $generation_id, absint( $item['post_id'] ) );
+		return $result;
 	}
 
 	/** @param array<string, mixed> $settings @return array<string, mixed> */

@@ -16,17 +16,20 @@ final class NT_Content_Images_Content_REST_Controller {
 	private NT_Content_Images_Content_Inserter $inserter;
 	private NT_Content_Images_Audit_Repository $audits;
 	private NT_Content_Images_Profile_Repository $profiles;
+	private NT_Content_Images_Media_Cleanup $cleanup;
 
 	public function __construct(
 		NT_Content_Images_Content_Image_Generator $generator,
 		NT_Content_Images_Content_Inserter $inserter,
 		NT_Content_Images_Audit_Repository $audits,
-		NT_Content_Images_Profile_Repository $profiles
+		NT_Content_Images_Profile_Repository $profiles,
+		NT_Content_Images_Media_Cleanup $cleanup
 	) {
 		$this->generator = $generator;
 		$this->inserter  = $inserter;
 		$this->audits    = $audits;
 		$this->profiles  = $profiles;
+		$this->cleanup   = $cleanup;
 	}
 
 	public function register_routes(): void {
@@ -36,6 +39,7 @@ final class NT_Content_Images_Content_REST_Controller {
 		register_rest_route( self::NAMESPACE, '/content-images/generate', array( 'methods' => WP_REST_Server::CREATABLE, 'callback' => array( $this, 'generate' ), 'permission_callback' => array( $this, 'can_manage' ), 'args' => $post_arg + array( 'index' => array( 'required' => false, 'sanitize_callback' => 'absint' ) ) ) );
 		register_rest_route( self::NAMESPACE, '/content-images/insert', array( 'methods' => WP_REST_Server::CREATABLE, 'callback' => array( $this, 'insert' ), 'permission_callback' => array( $this, 'can_manage' ), 'args' => $post_arg ) );
 		register_rest_route( self::NAMESPACE, '/content-images/rollback', array( 'methods' => WP_REST_Server::CREATABLE, 'callback' => array( $this, 'rollback' ), 'permission_callback' => array( $this, 'can_manage' ), 'args' => $post_arg ) );
+		register_rest_route( self::NAMESPACE, '/content-images/cleanup', array( 'methods' => WP_REST_Server::CREATABLE, 'callback' => array( $this, 'cleanup' ), 'permission_callback' => array( $this, 'can_manage' ) ) );
 	}
 
 	public function can_manage(): bool {
@@ -87,5 +91,10 @@ final class NT_Content_Images_Content_REST_Controller {
 	public function rollback( WP_REST_Request $request ): WP_REST_Response|WP_Error {
 		$result = $this->inserter->rollback( absint( $request->get_param( 'post_id' ) ) );
 		return is_wp_error( $result ) ? $result : rest_ensure_response( $result );
+	}
+
+	/** Deletes every plugin image that is not used as thumbnail or inside content. */
+	public function cleanup( WP_REST_Request $request ): WP_REST_Response {
+		return rest_ensure_response( $this->cleanup->sweep() );
 	}
 }
