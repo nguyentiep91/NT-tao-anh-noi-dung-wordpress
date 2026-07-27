@@ -60,7 +60,10 @@ final class NT_Content_Images_Generation_Settings {
 		}
 		$settings['providers']['cloudflare']['account_configured'] = '' !== $this->get_cloudflare_account_id();
 		$settings['providers']['cloudflare']['account_source'] = $this->get_cloudflare_account_source();
+		$settings['providers']['openrouter']['model_configured'] = '' !== $settings['openrouter_model'];
+		$settings['providers']['openrouter']['ready'] = $settings['providers']['openrouter']['configured'] && $settings['providers']['openrouter']['model_configured'];
 		$settings['configured'] = 'cloudflare' === $settings['provider'] ? ( '' !== $this->get_api_key( 'cloudflare' ) && '' !== $this->get_cloudflare_account_id() ) : '' !== $this->get_api_key( (string) $settings['provider'] );
+		$settings['ready'] = 'openrouter' === $settings['provider'] ? $settings['providers']['openrouter']['ready'] : $settings['configured'];
 		$settings['key_source'] = $this->get_key_source( (string) $settings['provider'] );
 		return $settings;
 	}
@@ -70,7 +73,8 @@ final class NT_Content_Images_Generation_Settings {
 		$current = $this->get();
 		$provider = sanitize_key( (string) ( $raw['provider'] ?? $current['provider'] ) );
 		$openai_model = sanitize_key( (string) ( $raw['openai_model'] ?? $current['openai_model'] ) );
-		$openrouter_model = $this->sanitize_openrouter_model( (string) ( $raw['openrouter_model'] ?? $current['openrouter_model'] ) );
+		$openrouter_model_raw = trim( (string) ( $raw['openrouter_model'] ?? $current['openrouter_model'] ) );
+		$openrouter_model = $this->sanitize_openrouter_model( $openrouter_model_raw );
 		$quality = sanitize_key( (string) ( $raw['quality'] ?? $current['quality'] ) );
 		$timeout = min( 300, max( 60, absint( $raw['timeout'] ?? $current['timeout'] ) ) );
 		$cloudflare_daily_limit = min( 500, max( 1, absint( $raw['cloudflare_daily_limit'] ?? $current['cloudflare_daily_limit'] ) ) );
@@ -81,8 +85,8 @@ final class NT_Content_Images_Generation_Settings {
 		if ( ! in_array( $openai_model, array( 'gpt-image-1', 'gpt-image-1-mini' ), true ) ) {
 			return new WP_Error( 'ntci_generation_invalid_model', __( 'Model OpenAI không hợp lệ.', 'nt-tao-anh-noi-dung-wordpress' ) );
 		}
-		if ( 'openrouter' === $provider && '' === $openrouter_model ) {
-			return new WP_Error( 'ntci_generation_openrouter_model_missing', __( 'Hãy chọn hoặc nhập model tạo ảnh của OpenRouter.', 'nt-tao-anh-noi-dung-wordpress' ) );
+		if ( 'openrouter' === $provider && '' !== $openrouter_model_raw && '' === $openrouter_model ) {
+			return new WP_Error( 'ntci_generation_openrouter_model_missing', __( 'Model OpenRouter không hợp lệ. Hãy chọn model từ danh sách hoặc nhập đúng dạng provider/model.', 'nt-tao-anh-noi-dung-wordpress' ) );
 		}
 		if ( ! in_array( $quality, array( 'low', 'medium', 'high', 'auto' ), true ) ) {
 			return new WP_Error( 'ntci_generation_invalid_quality', __( 'Chất lượng ảnh không hợp lệ.', 'nt-tao-anh-noi-dung-wordpress' ) );
