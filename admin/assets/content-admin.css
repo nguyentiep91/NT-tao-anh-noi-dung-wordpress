@@ -1,0 +1,133 @@
+.ntci-content {
+	max-width: 1440px;
+}
+
+.ntci-content-panel {
+	margin: 18px 0;
+	padding: 20px;
+	background: #fff;
+	border: 1px solid #dcdcde;
+	border-radius: 10px;
+	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.ntci-content-panel h2 {
+	margin-top: 0;
+}
+
+.ntci-content-heading {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 10px;
+	flex-wrap: wrap;
+}
+
+.ntci-content-actions-bar {
+	display: flex;
+	gap: 8px;
+	flex-wrap: wrap;
+}
+
+.ntci-content-table-wrap {
+	overflow-x: auto;
+	border: 1px solid #dcdcde;
+	border-radius: 8px;
+}
+
+.ntci-content-feedback {
+	min-height: 24px;
+	margin: 12px 0;
+	font-weight: 600;
+}
+
+.ntci-content-feedback--success {
+	color: #008a20;
+}
+
+.ntci-content-feedback--error {
+	color: #b32d2e;
+}
+
+.ntci-content-slots {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+	gap: 16px;
+	margin-top: 16px;
+}
+
+.ntci-content-slot {
+	overflow: hidden;
+	background: #fff;
+	border: 1px solid #dcdcde;
+	border-radius: 10px;
+}
+
+.ntci-content-slot header {
+	padding: 12px 14px;
+	background: #f6f7f7;
+	border-bottom: 1px solid #dcdcde;
+}
+
+.ntci-content-slot img,
+.ntci-content-placeholder {
+	display: block;
+	width: 100%;
+	aspect-ratio: 16 / 9;
+	object-fit: cover;
+	background: #f0f0f1;
+}
+
+.ntci-content-placeholder {
+	display: grid;
+	place-items: center;
+	padding: 10px;
+	color: #646970;
+	text-align: center;
+}
+
+.ntci-content-slot p {
+	margin: 10px 14px;
+}
+
+.ntci-content-badge {
+	display: inline-flex;
+	padding: 3px 9px;
+	border-radius: 999px;
+	background: #f0f0f1;
+	font-size: 12px;
+	font-weight: 700;
+}
+
+.ntci-content-badge--generated {
+	background: #fcf9e8;
+	color: #805d00;
+}
+
+.ntci-content-badge--approved {
+	background: #e5f5fa;
+	color: #0a4b78;
+}
+
+.ntci-content-badge--inserted {
+	background: #edfaef;
+	color: #008a20;
+}
+
+.ntci-content-badge--rejected,
+.ntci-content-badge--failed {
+	background: #fcf0f1;
+	color: #b32d2e;
+}
+
+@media (max-width: 782px) {
+	.ntci-content-panel {
+		padding: 14px;
+	}
+
+	.ntci-content-heading,
+	.ntci-content-actions-bar {
+		align-items: stretch;
+		flex-direction: column;
+	}
+}

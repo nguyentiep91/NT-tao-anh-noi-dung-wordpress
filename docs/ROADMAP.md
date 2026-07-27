@@ -99,15 +99,22 @@ Mục tiêu: repository có cấu trúc rõ ràng, plugin kích hoạt an toàn 
 
 ## Phase 6 — Template chữ và thương hiệu
 
-- [ ] SVG/Imagick renderer.
-- [ ] Logo thật, website, nhãn chuyên mục và font được cấp phép.
-- [ ] Template pack theo lĩnh vực và 3–5 prototype đầu tiên.
+- [x] GD/FreeType renderer (thay cho phương án SVG/Imagick ban đầu).
+- [x] Logo thật, website, nhãn chuyên mục và font được cấp phép (Be Vietnam Pro, SIL OFL).
+- [x] 5 template đầu tiên: bottom_gradient, left_panel, top_band, center_box, minimal_badge.
+- [x] Xem thử không lưu và chèn chữ thành ảnh mới chờ duyệt.
+- [x] Filter mở rộng template, font và dữ liệu overlay.
+- [ ] Runtime QA trên LocalWP theo checklist PHASE-6.
+- [ ] Template pack theo lĩnh vực và tự chọn mẫu theo nhóm nội dung.
 
 ## Phase 7 — Chèn ảnh và hoàn tác
 
-- [ ] Đặt featured image.
-- [ ] Chèn ảnh theo adapter an toàn.
-- [ ] Snapshot và rollback từng bài/batch.
+- [x] Đặt featured image (qua workflow duyệt từ 0.6.0).
+- [x] Tạo ảnh minh hoạ cho từng vị trí trong kế hoạch (prompt theo section, góc máy luân phiên).
+- [x] Chèn block ảnh an toàn theo anchor (Gutenberg + Classic), bỏ qua anchor không tìm thấy.
+- [x] Snapshot trước khi chèn và rollback byte-identical từng bài.
+- [x] Màn hình quản trị Ảnh trong bài (kế hoạch → tạo → duyệt → chèn → hoàn tác).
+- [ ] Batch nhiều bài (chờ queue nền Phase 3).
 
 ## Phase 8 — Canva tùy chọn
 

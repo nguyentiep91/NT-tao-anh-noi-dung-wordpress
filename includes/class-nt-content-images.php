@@ -27,6 +27,11 @@ final class NT_Content_Images {
 	private ?NT_Content_Images_Image_Provider_Manager $provider_manager = null;
 	private ?NT_Content_Images_Media_Manager $media_manager = null;
 	private ?NT_Content_Images_Featured_Image_Generator $featured_generator = null;
+	private ?NT_Content_Images_Content_Image_Generator $content_generator = null;
+	private ?NT_Content_Images_Content_Inserter $content_inserter = null;
+	private ?NT_Content_Images_Template_Registry $template_registry = null;
+	private ?NT_Content_Images_Template_Settings $template_settings = null;
+	private ?NT_Content_Images_Overlay_Service $overlay_service = null;
 	private ?NT_Content_Images_Canva_Settings $canva_settings = null;
 	private ?NT_Content_Images_Canva_OAuth $canva_oauth = null;
 	private ?NT_Content_Images_Canva_Design_Service $canva_designs = null;
@@ -55,11 +60,14 @@ final class NT_Content_Images {
 			$this->get_canva_designs()
 		);
 		$source_rest = new NT_Content_Images_Source_REST_Controller( $this->get_asset_service(), $this->get_asset_repository(), $this->get_source_settings(), $this->get_stock_provider_manager() );
+		$template_rest = new NT_Content_Images_Template_REST_Controller( $this->get_overlay_service() );
+		$content_rest = new NT_Content_Images_Content_REST_Controller( $this->get_content_generator(), $this->get_content_inserter(), $this->get_audit_repository(), $this->get_profile_repository() );
 		$audit_admin = new NT_Content_Images_Audit_Admin( $this->get_audit_query(), $this->get_post_type_registry() );
 		$brief_admin = new NT_Content_Images_Brief_Admin();
 		$settings_admin = new NT_Content_Images_Settings_Admin( $this->get_profile_repository(), $this->get_post_type_registry(), $this->get_rule_pack_registry() );
-		$generation_admin = new NT_Content_Images_Generation_Admin( $this->get_generation_settings(), $this->get_canva_settings(), $this->get_canva_oauth() );
+		$generation_admin = new NT_Content_Images_Generation_Admin( $this->get_generation_settings(), $this->get_canva_settings(), $this->get_canva_oauth(), $this->get_template_settings(), $this->get_overlay_service(), $this->get_provider_manager() );
 		$sources_admin = new NT_Content_Images_Sources_Admin( $this->get_source_settings(), $this->get_generation_settings() );
+		$content_admin = new NT_Content_Images_Content_Admin();
 		$exporter = new NT_Content_Images_Audit_Exporter( $this->get_audit_repository() );
 
 		add_action( 'init', array( $this, 'load_textdomain' ) );
@@ -69,6 +77,8 @@ final class NT_Content_Images {
 		add_action( 'rest_api_init', array( $brief_rest, 'register_routes' ) );
 		add_action( 'rest_api_init', array( $generation_rest, 'register_routes' ) );
 		add_action( 'rest_api_init', array( $source_rest, 'register_routes' ) );
+		add_action( 'rest_api_init', array( $template_rest, 'register_routes' ) );
+		add_action( 'rest_api_init', array( $content_rest, 'register_routes' ) );
 		add_action( 'nt_content_images_profile_updated', array( $this, 'handle_profile_updated' ), 10, 2 );
 
 		$audit_admin->register();
@@ -76,8 +86,10 @@ final class NT_Content_Images {
 		$settings_admin->register();
 		$generation_admin->register();
 		$sources_admin->register();
+		$content_admin->register();
 		$exporter->register();
 		$this->get_asset_service()->register();
+		$this->get_overlay_service()->register();
 		do_action( 'nt_content_images_loaded', $this );
 	}
 
@@ -146,6 +158,11 @@ final class NT_Content_Images {
 	public function get_generation_repository(): NT_Content_Images_Generation_Repository { $this->initialize_generation_services(); return $this->generation_repository; }
 	public function get_provider_manager(): NT_Content_Images_Image_Provider_Manager { $this->initialize_generation_services(); return $this->provider_manager; }
 	public function get_featured_generator(): NT_Content_Images_Featured_Image_Generator { $this->initialize_generation_services(); return $this->featured_generator; }
+	public function get_content_generator(): NT_Content_Images_Content_Image_Generator { $this->initialize_generation_services(); return $this->content_generator; }
+	public function get_content_inserter(): NT_Content_Images_Content_Inserter { $this->initialize_generation_services(); return $this->content_inserter; }
+	public function get_template_registry(): NT_Content_Images_Template_Registry { $this->initialize_generation_services(); return $this->template_registry; }
+	public function get_template_settings(): NT_Content_Images_Template_Settings { $this->initialize_generation_services(); return $this->template_settings; }
+	public function get_overlay_service(): NT_Content_Images_Overlay_Service { $this->initialize_generation_services(); return $this->overlay_service; }
 	public function get_canva_settings(): NT_Content_Images_Canva_Settings { $this->initialize_generation_services(); return $this->canva_settings; }
 	public function get_canva_oauth(): NT_Content_Images_Canva_OAuth { $this->initialize_generation_services(); return $this->canva_oauth; }
 	public function get_canva_designs(): NT_Content_Images_Canva_Design_Service { $this->initialize_generation_services(); return $this->canva_designs; }
@@ -207,6 +224,19 @@ final class NT_Content_Images {
 			)
 		);
 		$this->featured_generator = new NT_Content_Images_Featured_Image_Generator( $this->brief_generator, $this->brief_repository, new NT_Content_Images_Featured_Prompt_Builder( $this->profiles ), $this->provider_manager, $this->media_manager, $this->generation_repository, $this->generation_settings, $this->profiles, new NT_Content_Images_Generation_Lock(), new NT_Content_Images_Safe_Logger() );
+		$this->content_generator = new NT_Content_Images_Content_Image_Generator( $this->brief_generator, $this->brief_repository, new NT_Content_Images_Content_Prompt_Builder( $this->profiles ), $this->provider_manager, $this->media_manager, $this->generation_repository, $this->generation_settings, $this->profiles, new NT_Content_Images_Generation_Lock(), new NT_Content_Images_Safe_Logger() );
+		$this->content_inserter = new NT_Content_Images_Content_Inserter( $this->generation_repository, new NT_Content_Images_Safe_Logger() );
+		$this->template_registry = new NT_Content_Images_Template_Registry();
+		$this->template_settings = new NT_Content_Images_Template_Settings( $this->template_registry );
+		$this->overlay_service = new NT_Content_Images_Overlay_Service(
+			$this->template_registry,
+			$this->template_settings,
+			new NT_Content_Images_Overlay_Renderer(),
+			$this->generation_repository,
+			$this->media_manager,
+			$this->generation_settings,
+			$this->profiles
+		);
 		$this->canva_settings = new NT_Content_Images_Canva_Settings();
 		$this->canva_oauth = new NT_Content_Images_Canva_OAuth( $this->canva_settings );
 		$this->canva_designs = new NT_Content_Images_Canva_Design_Service( new NT_Content_Images_Canva_Client( $this->canva_oauth ), $this->generation_repository, $this->media_manager, $this->generation_settings );

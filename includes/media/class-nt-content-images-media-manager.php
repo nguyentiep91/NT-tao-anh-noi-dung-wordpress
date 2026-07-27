@@ -30,6 +30,29 @@ final class NT_Content_Images_Media_Manager {
 	}
 
 	/**
+	 * Saves one in-article illustration with its own section-specific alt text.
+	 *
+	 * @param array<string, mixed> $image Provider image response.
+	 * @param array<string, mixed> $meta  alt_text and caption for the section.
+	 * @return array<string, mixed>|WP_Error
+	 */
+	public function store_content_candidate( int $post_id, array $image, string $prompt, array $settings, array $meta = array() ) {
+		return $this->store_candidate(
+			$post_id,
+			$image,
+			$settings,
+			array(
+				'source_kind' => 'ai',
+				'provider'    => sanitize_key( (string) ( $image['provider'] ?? 'ai' ) ),
+				'prompt_hash' => hash( 'sha256', $prompt ),
+				'alt_text'    => sanitize_text_field( (string) ( $meta['alt_text'] ?? '' ) ),
+				'caption'     => sanitize_text_field( (string) ( $meta['caption'] ?? '' ) ),
+				'title'       => sanitize_text_field( (string) ( $meta['title'] ?? '' ) ),
+			)
+		);
+	}
+
+	/**
 	 * @param array<string, mixed> $image Downloaded image bytes.
 	 * @param array<string, mixed> $asset Normalized stock metadata.
 	 * @param array<string, mixed> $settings Image settings.
@@ -91,10 +114,11 @@ final class NT_Content_Images_Media_Manager {
 
 		$file = (string) $upload['file'];
 		$this->crop_to_target( $file, absint( $settings['target_width'] ?? 1280 ), absint( $settings['target_height'] ?? 720 ) );
+		$attachment_title = '' !== (string) ( $metadata['title'] ?? '' ) ? (string) $metadata['title'] : get_the_title( $post );
 		$attachment_id = wp_insert_attachment(
 			array(
 				'post_mime_type' => $detected_mime,
-				'post_title'     => sanitize_text_field( get_the_title( $post ) ),
+				'post_title'     => sanitize_text_field( $attachment_title ),
 				'post_content'   => '',
 				'post_excerpt'   => sanitize_text_field( (string) ( $metadata['caption'] ?? '' ) ),
 				'post_status'    => 'inherit',
@@ -113,7 +137,8 @@ final class NT_Content_Images_Media_Manager {
 		if ( is_array( $attachment_metadata ) ) {
 			wp_update_attachment_metadata( $attachment_id, $attachment_metadata );
 		}
-		update_post_meta( $attachment_id, '_wp_attachment_image_alt', sanitize_text_field( get_the_title( $post ) ) );
+		$alt_text = '' !== (string) ( $metadata['alt_text'] ?? '' ) ? (string) $metadata['alt_text'] : get_the_title( $post );
+		update_post_meta( $attachment_id, '_wp_attachment_image_alt', sanitize_text_field( $alt_text ) );
 		update_post_meta( $attachment_id, '_nt_content_images_generated', 'ai' === (string) ( $metadata['source_kind'] ?? '' ) ? '1' : '0' );
 		update_post_meta( $attachment_id, '_nt_content_images_source_post_id', $post_id );
 		$text_meta = array(

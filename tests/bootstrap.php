@@ -6,6 +6,7 @@
 declare(strict_types=1);
 
 define( 'ABSPATH', __DIR__ . '/' );
+define( 'NT_CONTENT_IMAGES_PATH', dirname( __DIR__ ) . '/' );
 define( 'MINUTE_IN_SECONDS', 60 );
 define( 'HOUR_IN_SECONDS', 3600 );
 define( 'DAY_IN_SECONDS', 86400 );
@@ -143,3 +144,7 @@ require_once dirname( __DIR__ ) . '/includes/providers/class-nt-content-images-f
 require_once dirname( __DIR__ ) . '/includes/providers/class-nt-content-images-image-provider-manager.php';
 require_once dirname( __DIR__ ) . '/includes/canva/class-nt-content-images-canva-settings.php';
 require_once dirname( __DIR__ ) . '/includes/canva/class-nt-content-images-canva-oauth.php';
+require_once dirname( __DIR__ ) . '/includes/insertion/class-nt-content-images-content-inserter.php';
+require_once dirname( __DIR__ ) . '/includes/templates/class-nt-content-images-template-registry.php';
+require_once dirname( __DIR__ ) . '/includes/templates/class-nt-content-images-template-settings.php';
+require_once dirname( __DIR__ ) . '/includes/templates/class-nt-content-images-overlay-renderer.php';

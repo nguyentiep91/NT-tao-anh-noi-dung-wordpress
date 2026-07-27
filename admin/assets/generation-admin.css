@@ -60,10 +60,28 @@
 	justify-content: space-between;
 }
 
-.ntci-generation-canva-actions {
+.ntci-generation-canva-actions,
+.ntci-overlay-actions {
 	margin-top: 10px;
 	padding-top: 10px;
 	border-top: 1px solid #dcdcde;
+}
+
+.ntci-overlay-actions .ntci-overlay-template {
+	max-width: 190px;
+}
+
+.ntci-overlay-note {
+	color: #805d00;
+	font-size: 12px;
+	font-weight: 700;
+}
+
+.ntci-template-list {
+	margin: 14px 0;
+	padding-left: 18px;
+	list-style: disc;
+	color: #50575e;
 }
 
 .ntci-generation-table-wrap {

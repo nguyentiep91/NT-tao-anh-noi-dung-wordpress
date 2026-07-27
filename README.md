@@ -72,9 +72,11 @@ Database prefix: nt_content_images_
 - [ ] Kiểm tra kích hoạt trên môi trường WordPress thử nghiệm.
 - [ ] Xây module audit bài viết ở chế độ chỉ đọc.
 - [ ] Xây hàng đợi xử lý và workflow duyệt.
-- [ ] Tích hợp nhà cung cấp AI đầu tiên.
-- [ ] Xây template chèn chữ/logo.
-- [ ] Bổ sung Canva tùy chọn.
+- [x] Tích hợp nhà cung cấp AI đầu tiên (OpenAI, OpenRouter, Cloudflare, fal.ai).
+- [x] Xây template chèn chữ/logo (5 mẫu GD/FreeType, font Be Vietnam Pro).
+- [x] Bổ sung Canva tùy chọn.
+- [ ] Queue/batch generation và cost tracking.
+- [ ] Chèn ảnh vào nội dung bài và hoàn tác.
 
 ## Tài liệu
 

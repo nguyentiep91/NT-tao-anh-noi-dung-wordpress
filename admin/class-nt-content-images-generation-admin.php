@@ -13,21 +13,31 @@ final class NT_Content_Images_Generation_Admin {
 	private NT_Content_Images_Generation_Settings $settings;
 	private NT_Content_Images_Canva_Settings $canva_settings;
 	private NT_Content_Images_Canva_OAuth $canva_oauth;
+	private NT_Content_Images_Template_Settings $template_settings;
+	private NT_Content_Images_Overlay_Service $overlay_service;
+	private NT_Content_Images_Image_Provider_Manager $providers;
 
 	public function __construct(
 		NT_Content_Images_Generation_Settings $settings,
 		NT_Content_Images_Canva_Settings $canva_settings,
-		NT_Content_Images_Canva_OAuth $canva_oauth
+		NT_Content_Images_Canva_OAuth $canva_oauth,
+		NT_Content_Images_Template_Settings $template_settings,
+		NT_Content_Images_Overlay_Service $overlay_service,
+		NT_Content_Images_Image_Provider_Manager $providers
 	) {
-		$this->settings       = $settings;
-		$this->canva_settings = $canva_settings;
-		$this->canva_oauth    = $canva_oauth;
+		$this->settings          = $settings;
+		$this->canva_settings    = $canva_settings;
+		$this->canva_oauth       = $canva_oauth;
+		$this->template_settings = $template_settings;
+		$this->overlay_service   = $overlay_service;
+		$this->providers         = $providers;
 	}
 
 	public function register(): void {
 		add_action( 'admin_menu', array( $this, 'register_menu' ), 25 );
 		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_assets' ) );
 		add_action( 'admin_post_nt_content_images_save_generation_settings', array( $this, 'handle_save_settings' ) );
+		add_action( 'admin_post_nt_content_images_save_template_settings', array( $this, 'handle_save_template_settings' ) );
 		add_action( 'admin_post_nt_content_images_save_canva_credentials', array( $this, 'handle_save_canva_credentials' ) );
 		add_action( 'admin_post_nt_content_images_canva_connect', array( $this, 'handle_canva_connect' ) );
 		add_action( 'admin_post_nt_content_images_canva_callback', array( $this, 'handle_canva_callback' ) );
@@ -45,6 +55,7 @@ final class NT_Content_Images_Generation_Admin {
 		}
 		wp_enqueue_style( 'nt-content-images-generation', NT_CONTENT_IMAGES_URL . 'admin/assets/generation-admin.css', array(), NT_CONTENT_IMAGES_VERSION );
 		wp_enqueue_script( 'nt-content-images-generation', NT_CONTENT_IMAGES_URL . 'admin/assets/generation-admin.js', array( 'wp-api-fetch' ), NT_CONTENT_IMAGES_VERSION, true );
+		$overlay = $this->overlay_service->get_status();
 		wp_localize_script(
 			'nt-content-images-generation',
 			'NTContentImagesGeneration',
@@ -52,11 +63,17 @@ final class NT_Content_Images_Generation_Admin {
 				'root'           => '/nt-content-images/v1',
 				'nonce'          => wp_create_nonce( 'wp_rest' ),
 				'canvaConnected' => $this->canva_settings->is_connected(),
+				'overlay'        => array(
+					'ready'           => (bool) $overlay['ready'],
+					'templates'       => $overlay['templates'],
+					'defaultTemplate' => (string) $overlay['settings']['default_template'],
+				),
 				'labels'         => array(
 					'confirmGenerate' => __( 'Tạo một ảnh AI có thể phát sinh chi phí API. Tiếp tục?', 'nt-tao-anh-noi-dung-wordpress' ),
 					'confirmApprove'  => __( 'Đặt ảnh này làm ảnh đại diện cho bài viết?', 'nt-tao-anh-noi-dung-wordpress' ),
 					'confirmCanva'    => __( 'Gửi ảnh này sang tài khoản Canva đã kết nối?', 'nt-tao-anh-noi-dung-wordpress' ),
 					'confirmImport'   => __( 'Xuất thiết kế Canva hiện tại và nhập lại WordPress dưới dạng ảnh mới chờ duyệt?', 'nt-tao-anh-noi-dung-wordpress' ),
+					'confirmOverlay'  => __( 'Chèn chữ theo mẫu đã chọn và lưu thành ảnh mới chờ duyệt?', 'nt-tao-anh-noi-dung-wordpress' ),
 					'networkError'    => __( 'Không thể kết nối tới WordPress REST API.', 'nt-tao-anh-noi-dung-wordpress' ),
 				)
 			)
@@ -68,6 +85,13 @@ final class NT_Content_Images_Generation_Admin {
 		$raw = isset( $_POST['generation_settings'] ) && is_array( $_POST['generation_settings'] ) ? wp_unslash( $_POST['generation_settings'] ) : array();
 		$result = $this->settings->save( $raw );
 		$this->redirect_result( $result, 'generation_saved' );
+	}
+
+	public function handle_save_template_settings(): void {
+		$this->assert_permission( 'nt_content_images_save_template_settings' );
+		$raw = isset( $_POST['template_settings'] ) && is_array( $_POST['template_settings'] ) ? wp_unslash( $_POST['template_settings'] ) : array();
+		$result = $this->template_settings->save( $raw );
+		$this->redirect_result( $result, 'template_saved' );
 	}
 
 	public function handle_save_canva_credentials(): void {
@@ -113,6 +137,18 @@ final class NT_Content_Images_Generation_Admin {
 		}
 		$config = $this->settings->get_public();
 		$canva = $this->canva_settings->get_public();
+		$overlay = $this->overlay_service->get_status();
+		$openrouter_models = array();
+		if ( ! empty( $config['providers']['openrouter']['configured'] ) ) {
+			$models = $this->providers->list_models( 'openrouter' );
+			if ( ! is_wp_error( $models ) ) {
+				$openrouter_models = $models;
+			}
+		}
+		$current_openrouter_model = (string) $config['openrouter_model'];
+		if ( '' !== $current_openrouter_model && ! in_array( $current_openrouter_model, array_column( $openrouter_models, 'id' ), true ) ) {
+			array_unshift( $openrouter_models, array( 'id' => $current_openrouter_model, 'name' => $current_openrouter_model ) );
+		}
 		$status = isset( $_GET['ntci_status'] ) ? sanitize_key( wp_unslash( $_GET['ntci_status'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$error = isset( $_GET['ntci_error'] ) ? sanitize_text_field( wp_unslash( $_GET['ntci_error'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$connect_url = wp_nonce_url( admin_url( 'admin-post.php?action=nt_content_images_canva_connect' ), 'nt_content_images_canva_connect' );
@@ -144,7 +180,19 @@ final class NT_Content_Images_Generation_Admin {
 						<label><span><?php echo esc_html__( 'OpenAI API key', 'nt-tao-anh-noi-dung-wordpress' ); ?></span><input type="password" name="generation_settings[openai_api_key]" autocomplete="new-password" placeholder="Để trống để giữ key" <?php disabled( 'wp-config' === $config['providers']['openai']['key_source'] ); ?>></label>
 						<label><span><?php echo esc_html__( 'OpenRouter API key', 'nt-tao-anh-noi-dung-wordpress' ); ?></span><input type="password" name="generation_settings[openrouter_api_key]" autocomplete="new-password" placeholder="Để trống để giữ key" <?php disabled( 'wp-config' === $config['providers']['openrouter']['key_source'] ); ?>></label>
 						<label><span><?php echo esc_html__( 'OpenAI model', 'nt-tao-anh-noi-dung-wordpress' ); ?></span><select name="generation_settings[openai_model]"><option value="gpt-image-1-mini" <?php selected( $config['openai_model'], 'gpt-image-1-mini' ); ?>>gpt-image-1-mini</option><option value="gpt-image-1" <?php selected( $config['openai_model'], 'gpt-image-1' ); ?>>gpt-image-1</option></select></label>
-						<label><span><?php echo esc_html__( 'OpenRouter image model', 'nt-tao-anh-noi-dung-wordpress' ); ?></span><input id="ntci-openrouter-model" list="ntci-openrouter-models" type="text" name="generation_settings[openrouter_model]" value="<?php echo esc_attr( (string) $config['openrouter_model'] ); ?>" placeholder="provider/model"><datalist id="ntci-openrouter-models"></datalist><small><?php echo esc_html__( 'Khi có API key, plugin sẽ tải danh sách model ảnh từ OpenRouter.', 'nt-tao-anh-noi-dung-wordpress' ); ?></small></label>
+						<label><span><?php echo esc_html__( 'OpenRouter image model', 'nt-tao-anh-noi-dung-wordpress' ); ?></span>
+							<?php if ( array() !== $openrouter_models ) : ?>
+								<select id="ntci-openrouter-model-select" name="generation_settings[openrouter_model]">
+									<?php foreach ( $openrouter_models as $model ) : ?>
+										<option value="<?php echo esc_attr( (string) $model['id'] ); ?>" <?php selected( $current_openrouter_model, $model['id'] ); ?>><?php echo esc_html( (string) $model['name'] ); ?> — <?php echo esc_html( (string) $model['id'] ); ?></option>
+									<?php endforeach; ?>
+								</select>
+								<small><?php echo esc_html( sprintf( /* translators: %d: model count. */ __( 'Đã tải %d model ảnh từ OpenRouter (cache 15 phút).', 'nt-tao-anh-noi-dung-wordpress' ), count( $openrouter_models ) ) ); ?></small>
+							<?php else : ?>
+								<input id="ntci-openrouter-model" list="ntci-openrouter-models" type="text" name="generation_settings[openrouter_model]" value="<?php echo esc_attr( $current_openrouter_model ); ?>" placeholder="provider/model"><datalist id="ntci-openrouter-models"></datalist>
+								<small><?php echo esc_html__( 'Lưu API key OpenRouter rồi tải lại trang để chọn model từ danh sách.', 'nt-tao-anh-noi-dung-wordpress' ); ?></small>
+							<?php endif; ?>
+						</label>
 						<label><span><?php echo esc_html__( 'Chất lượng OpenAI', 'nt-tao-anh-noi-dung-wordpress' ); ?></span><select name="generation_settings[quality]"><?php foreach ( array( 'low', 'medium', 'high', 'auto' ) as $quality ) : ?><option value="<?php echo esc_attr( $quality ); ?>" <?php selected( $config['quality'], $quality ); ?>><?php echo esc_html( $quality ); ?></option><?php endforeach; ?></select></label>
 						<label><span><?php echo esc_html__( 'Giới hạn Cloudflare/ngày', 'nt-tao-anh-noi-dung-wordpress' ); ?></span><input type="number" min="1" max="500" name="generation_settings[cloudflare_daily_limit]" value="<?php echo esc_attr( (string) $config['cloudflare_daily_limit'] ); ?>"></label>
 						<label><span><?php echo esc_html__( 'Timeout giây', 'nt-tao-anh-noi-dung-wordpress' ); ?></span><input type="number" min="60" max="300" name="generation_settings[timeout]" value="<?php echo esc_attr( (string) $config['timeout'] ); ?>"></label>
@@ -174,6 +222,37 @@ final class NT_Content_Images_Generation_Admin {
 				</form>
 				<p><?php if ( $canva['connected'] ) : ?><a class="button" href="<?php echo esc_url( $disconnect_url ); ?>"><?php echo esc_html__( 'Ngắt kết nối Canva', 'nt-tao-anh-noi-dung-wordpress' ); ?></a><?php elseif ( $canva['credentials_configured'] ) : ?><a class="button button-primary" href="<?php echo esc_url( $connect_url ); ?>"><?php echo esc_html__( 'Kết nối tài khoản Canva', 'nt-tao-anh-noi-dung-wordpress' ); ?></a><?php endif; ?></p>
 				<p class="description"><?php echo esc_html__( 'LocalWP thường cần Live Link/tunnel hoặc redirect URI được Canva cho phép. Có thể khai báo NT_CONTENT_IMAGES_CANVA_REDIRECT_URI trong wp-config.php.', 'nt-tao-anh-noi-dung-wordpress' ); ?></p>
+			</section>
+
+			<section class="ntci-generation-panel">
+				<h2><?php echo esc_html__( 'Chèn chữ và thương hiệu theo mẫu', 'nt-tao-anh-noi-dung-wordpress' ); ?></h2>
+				<p><?php echo esc_html__( 'Plugin vẽ tiêu đề, nhãn chuyên mục, logo và tên website lên ảnh nền bằng font Be Vietnam Pro. Chữ luôn được render trong WordPress, không nhờ AI viết chữ, nên tiếng Việt hiển thị chính xác.', 'nt-tao-anh-noi-dung-wordpress' ); ?></p>
+				<p>
+					<strong>GD/FreeType:</strong> <?php echo esc_html( $overlay['gd_supported'] ? __( 'sẵn sàng', 'nt-tao-anh-noi-dung-wordpress' ) : __( 'chưa bật trên máy chủ', 'nt-tao-anh-noi-dung-wordpress' ) ); ?> ·
+					<strong>Font:</strong> <?php echo esc_html( $overlay['fonts_ready'] ? __( 'đầy đủ', 'nt-tao-anh-noi-dung-wordpress' ) : __( 'thiếu file font', 'nt-tao-anh-noi-dung-wordpress' ) ); ?> ·
+					<strong><?php echo esc_html__( 'Chèn chữ trong Brand Profile:', 'nt-tao-anh-noi-dung-wordpress' ); ?></strong> <?php echo esc_html( $overlay['overlay_enabled'] ? __( 'đang bật', 'nt-tao-anh-noi-dung-wordpress' ) : __( 'đang tắt', 'nt-tao-anh-noi-dung-wordpress' ) ); ?> ·
+					<strong>Logo:</strong> <?php echo esc_html( $overlay['logo_configured'] ? __( 'đã cấu hình', 'nt-tao-anh-noi-dung-wordpress' ) : __( 'chưa có', 'nt-tao-anh-noi-dung-wordpress' ) ); ?>
+				</p>
+				<?php if ( ! $overlay['ready'] ) : ?><div class="notice notice-warning inline"><p><?php echo esc_html__( 'Chưa thể chèn chữ. Hãy kiểm tra GD/FreeType, file font trong assets/fonts và bật chèn chữ trong Cấu hình website.', 'nt-tao-anh-noi-dung-wordpress' ); ?></p></div><?php endif; ?>
+				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+					<input type="hidden" name="action" value="nt_content_images_save_template_settings">
+					<?php wp_nonce_field( 'nt_content_images_save_template_settings' ); ?>
+					<div class="ntci-generation-grid">
+						<label><span><?php echo esc_html__( 'Mẫu cho ảnh đại diện', 'nt-tao-anh-noi-dung-wordpress' ); ?></span><select name="template_settings[default_template]"><?php foreach ( $overlay['templates'] as $template ) : ?><option value="<?php echo esc_attr( (string) $template['id'] ); ?>" <?php selected( $overlay['settings']['default_template'], $template['id'] ); ?>><?php echo esc_html( (string) $template['label'] ); ?></option><?php endforeach; ?></select></label>
+						<label><span><?php echo esc_html__( 'Mẫu cho ảnh trong bài', 'nt-tao-anh-noi-dung-wordpress' ); ?></span><select name="template_settings[content_template]"><?php foreach ( $overlay['templates'] as $template ) : ?><option value="<?php echo esc_attr( (string) $template['id'] ); ?>" <?php selected( $overlay['settings']['content_template'], $template['id'] ); ?>><?php echo esc_html( (string) $template['label'] ); ?></option><?php endforeach; ?></select><small><?php echo esc_html__( 'Chữ trên ảnh trong bài là tên mục (H2) tương ứng, không phải tiêu đề bài.', 'nt-tao-anh-noi-dung-wordpress' ); ?></small></label>
+					</div>
+					<label><input type="checkbox" name="template_settings[show_category]" value="1" <?php checked( ! empty( $overlay['settings']['show_category'] ) ); ?>> <?php echo esc_html__( 'Hiện nhãn chuyên mục', 'nt-tao-anh-noi-dung-wordpress' ); ?></label><br>
+					<label><input type="checkbox" name="template_settings[show_site_name]" value="1" <?php checked( ! empty( $overlay['settings']['show_site_name'] ) ); ?>> <?php echo esc_html__( 'Hiện tên thương hiệu và website', 'nt-tao-anh-noi-dung-wordpress' ); ?></label><br>
+					<label><input type="checkbox" name="template_settings[show_logo]" value="1" <?php checked( ! empty( $overlay['settings']['show_logo'] ) ); ?>> <?php echo esc_html__( 'Hiện logo (lấy từ Brand Profile)', 'nt-tao-anh-noi-dung-wordpress' ); ?></label><br>
+					<label><input type="checkbox" name="template_settings[auto_overlay]" value="1" <?php checked( ! empty( $overlay['settings']['auto_overlay'] ) ); ?>> <strong><?php echo esc_html__( 'Tự động chèn chữ theo mẫu mặc định ngay sau khi tạo ảnh AI', 'nt-tao-anh-noi-dung-wordpress' ); ?></strong> — <?php echo esc_html__( 'bản có chữ xuất hiện cùng bản gốc trong danh sách chờ duyệt.', 'nt-tao-anh-noi-dung-wordpress' ); ?></label>
+					<ul class="ntci-template-list">
+						<?php foreach ( $overlay['templates'] as $template ) : ?>
+							<li><strong><?php echo esc_html( (string) $template['label'] ); ?></strong> — <?php echo esc_html( (string) $template['description'] ); ?></li>
+						<?php endforeach; ?>
+					</ul>
+					<p class="description"><?php echo esc_html__( 'Chọn mẫu và bấm Xem thử/Chèn chữ ngay trên từng ảnh trong danh sách “Ảnh đã tạo hoặc nhập” bên dưới. Bản chèn chữ được lưu thành ảnh mới chờ duyệt, không ghi đè ảnh gốc.', 'nt-tao-anh-noi-dung-wordpress' ); ?></p>
+					<?php submit_button( __( 'Lưu cấu hình mẫu chữ', 'nt-tao-anh-noi-dung-wordpress' ), 'secondary' ); ?>
+				</form>
 			</section>
 
 			<section class="ntci-generation-panel">

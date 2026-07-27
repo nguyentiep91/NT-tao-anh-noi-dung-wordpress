@@ -2,8 +2,8 @@
 /**
  * Plugin Name:       NT – Tạo ảnh cho nội dung WordPress
  * Plugin URI:        https://nguyentiep.vn
- * Description:       Phân tích nội dung, tìm ảnh miễn phí, tạo ảnh qua Cloudflare/fal.ai/OpenAI/OpenRouter, chỉnh sửa bằng Canva và duyệt an toàn.
- * Version:           0.8.1
+ * Description:       Phân tích nội dung, tìm ảnh miễn phí, tạo ảnh qua Cloudflare/fal.ai/OpenAI/OpenRouter, chèn chữ theo mẫu, tạo và chèn ảnh minh hoạ vào bài viết, chỉnh sửa bằng Canva và duyệt an toàn.
+ * Version:           0.10.0
  * Author:            Nguyễn Tiệp
  * Author URI:        https://nguyentiep.vn
  * Text Domain:       nt-tao-anh-noi-dung-wordpress
@@ -16,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'NT_CONTENT_IMAGES_VERSION', '0.8.1' );
+define( 'NT_CONTENT_IMAGES_VERSION', '0.10.0' );
 define( 'NT_CONTENT_IMAGES_DB_VERSION', '1.4.0' );
 define( 'NT_CONTENT_IMAGES_FILE', __FILE__ );
 define( 'NT_CONTENT_IMAGES_PATH', plugin_dir_path( __FILE__ ) );
@@ -67,6 +67,7 @@ require_once NT_CONTENT_IMAGES_PATH . 'includes/generation/class-nt-content-imag
 require_once NT_CONTENT_IMAGES_PATH . 'includes/generation/class-nt-content-images-generation-repository.php';
 require_once NT_CONTENT_IMAGES_PATH . 'includes/generation/class-nt-content-images-generation-lock.php';
 require_once NT_CONTENT_IMAGES_PATH . 'includes/generation/class-nt-content-images-featured-prompt-builder.php';
+require_once NT_CONTENT_IMAGES_PATH . 'includes/generation/class-nt-content-images-content-prompt-builder.php';
 require_once NT_CONTENT_IMAGES_PATH . 'includes/providers/interface-nt-content-images-image-provider.php';
 require_once NT_CONTENT_IMAGES_PATH . 'includes/providers/class-nt-content-images-openai-image-provider.php';
 require_once NT_CONTENT_IMAGES_PATH . 'includes/providers/class-nt-content-images-openrouter-image-provider.php';
@@ -74,6 +75,11 @@ require_once NT_CONTENT_IMAGES_PATH . 'includes/providers/class-nt-content-image
 require_once NT_CONTENT_IMAGES_PATH . 'includes/providers/class-nt-content-images-fal-image-provider.php';
 require_once NT_CONTENT_IMAGES_PATH . 'includes/providers/class-nt-content-images-image-provider-manager.php';
 require_once NT_CONTENT_IMAGES_PATH . 'includes/media/class-nt-content-images-media-manager.php';
+require_once NT_CONTENT_IMAGES_PATH . 'includes/templates/class-nt-content-images-template-registry.php';
+require_once NT_CONTENT_IMAGES_PATH . 'includes/templates/class-nt-content-images-template-settings.php';
+require_once NT_CONTENT_IMAGES_PATH . 'includes/templates/class-nt-content-images-overlay-renderer.php';
+require_once NT_CONTENT_IMAGES_PATH . 'includes/templates/class-nt-content-images-overlay-service.php';
+require_once NT_CONTENT_IMAGES_PATH . 'includes/templates/class-nt-content-images-template-rest-controller.php';
 require_once NT_CONTENT_IMAGES_PATH . 'includes/sources/interface-nt-content-images-stock-provider.php';
 require_once NT_CONTENT_IMAGES_PATH . 'includes/sources/class-nt-content-images-source-settings.php';
 require_once NT_CONTENT_IMAGES_PATH . 'includes/sources/class-nt-content-images-stock-query-builder.php';
@@ -90,12 +96,16 @@ require_once NT_CONTENT_IMAGES_PATH . 'includes/canva/class-nt-content-images-ca
 require_once NT_CONTENT_IMAGES_PATH . 'includes/canva/class-nt-content-images-canva-client.php';
 require_once NT_CONTENT_IMAGES_PATH . 'includes/canva/class-nt-content-images-canva-design-service.php';
 require_once NT_CONTENT_IMAGES_PATH . 'includes/generation/class-nt-content-images-featured-image-generator.php';
+require_once NT_CONTENT_IMAGES_PATH . 'includes/generation/class-nt-content-images-content-image-generator.php';
+require_once NT_CONTENT_IMAGES_PATH . 'includes/insertion/class-nt-content-images-content-inserter.php';
+require_once NT_CONTENT_IMAGES_PATH . 'includes/insertion/class-nt-content-images-content-rest-controller.php';
 require_once NT_CONTENT_IMAGES_PATH . 'includes/generation/class-nt-content-images-generation-rest-controller.php';
 require_once NT_CONTENT_IMAGES_PATH . 'admin/class-nt-content-images-audit-admin.php';
 require_once NT_CONTENT_IMAGES_PATH . 'admin/class-nt-content-images-brief-admin.php';
 require_once NT_CONTENT_IMAGES_PATH . 'admin/class-nt-content-images-settings-admin.php';
 require_once NT_CONTENT_IMAGES_PATH . 'admin/class-nt-content-images-sources-admin.php';
 require_once NT_CONTENT_IMAGES_PATH . 'admin/class-nt-content-images-generation-admin.php';
+require_once NT_CONTENT_IMAGES_PATH . 'admin/class-nt-content-images-content-admin.php';
 require_once NT_CONTENT_IMAGES_PATH . 'includes/class-nt-content-images-activator.php';
 require_once NT_CONTENT_IMAGES_PATH . 'includes/class-nt-content-images-deactivator.php';
 require_once NT_CONTENT_IMAGES_PATH . 'includes/class-nt-content-images.php';

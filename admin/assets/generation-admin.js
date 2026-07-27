@@ -84,6 +84,29 @@
 		return labels[ status ] || status;
 	}
 
+	function overlayActions( item ) {
+		const overlay = config.overlay;
+		if ( ! overlay || ! overlay.ready || ! item.attachment_id || item.provider === 'template' ) {
+			return '';
+		}
+		if ( [ 'generated', 'approved', 'rejected' ].indexOf( item.status ) === -1 ) {
+			return '';
+		}
+		const options = ( overlay.templates || [] ).map( function ( template ) {
+			const selected = template.id === overlay.defaultTemplate ? ' selected' : '';
+			return '<option value="' + escapeHtml( template.id ) + '"' + selected + '>' + escapeHtml( template.label ) + '</option>';
+		} ).join( '' );
+		if ( ! options ) {
+			return '';
+		}
+		return '<div class="ntci-generation-actions ntci-overlay-actions" data-id="' + Number( item.id ) + '">' +
+			'<select class="ntci-overlay-template" aria-label="Mẫu chữ">' + options + '</select>' +
+			'<button type="button" class="button ntci-overlay-preview" data-id="' + Number( item.id ) + '">Xem thử mẫu</button>' +
+			'<button type="button" class="button button-primary ntci-overlay-apply" data-id="' + Number( item.id ) + '">Chèn chữ</button>' +
+			'<span class="ntci-overlay-note" hidden>Đang xem thử — chưa lưu.</span>' +
+			'</div>';
+	}
+
 	function canvaActions( item ) {
 		if ( ! config.canvaConnected || ! item.attachment_id || item.status === 'failed' ) {
 			return '';
@@ -111,7 +134,7 @@
 				const image = item.image_url ? '<img src="' + escapeHtml( item.image_url ) + '" alt="">' : '<div class="ntci-generation-placeholder">Không có ảnh</div>';
 				const actions = item.status === 'generated' ? '<div class="ntci-generation-actions"><button type="button" class="button button-primary ntci-approve" data-id="' + Number( item.id ) + '">Duyệt làm ảnh đại diện</button><button type="button" class="button ntci-reject" data-id="' + Number( item.id ) + '">Từ chối</button></div>' : '';
 				const error = item.error_message ? '<p class="ntci-generation-error">' + escapeHtml( item.error_message ) + '</p>' : '';
-				return '<article class="ntci-generation-card">' + image + '<div class="ntci-generation-card-body"><h3>' + escapeHtml( item.title ) + '</h3><p><span class="ntci-generation-badge ntci-generation-badge--' + escapeHtml( item.status ) + '">' + escapeHtml( statusLabel( item.status ) ) + '</span> <code>#' + Number( item.id ) + '</code></p><p><strong>Provider:</strong> ' + escapeHtml( item.provider ) + '<br><strong>Model:</strong> ' + escapeHtml( item.model ) + '</p><details><summary>Prompt</summary><pre>' + escapeHtml( item.prompt ) + '</pre></details>' + error + actions + canvaActions( item ) + '</div></article>';
+				return '<article class="ntci-generation-card">' + image + '<div class="ntci-generation-card-body"><h3>' + escapeHtml( item.title ) + '</h3><p><span class="ntci-generation-badge ntci-generation-badge--' + escapeHtml( item.status ) + '">' + escapeHtml( statusLabel( item.status ) ) + '</span> <code>#' + Number( item.id ) + '</code></p><p><strong>Provider:</strong> ' + escapeHtml( item.provider ) + '<br><strong>Model:</strong> ' + escapeHtml( item.model ) + '</p><details><summary>Prompt</summary><pre>' + escapeHtml( item.prompt ) + '</pre></details>' + error + actions + overlayActions( item ) + canvaActions( item ) + '</div></article>';
 			} ).join( '' );
 		} catch ( error ) {
 			gallery.innerHTML = '<p>Không thể tải danh sách ảnh.</p>';
@@ -173,12 +196,66 @@
 		}
 	}
 
+	function selectedTemplate( button ) {
+		const wrap = button.closest( '.ntci-overlay-actions' );
+		const select = wrap ? wrap.querySelector( '.ntci-overlay-template' ) : null;
+		return select ? select.value : '';
+	}
+
+	async function overlayPreview( button ) {
+		if ( busy ) {
+			return;
+		}
+		busy = true;
+		button.disabled = true;
+		setFeedback( 'Đang dựng bản xem thử mẫu chữ…' );
+		try {
+			const data = await request( '/generations/' + Number( button.dataset.id ) + '/overlay/preview', 'POST', { template: selectedTemplate( button ) } );
+			const card = button.closest( '.ntci-generation-card' );
+			const image = card ? card.querySelector( 'img' ) : null;
+			if ( image && data.preview ) {
+				image.src = data.preview;
+			}
+			const note = card ? card.querySelector( '.ntci-overlay-note' ) : null;
+			if ( note ) {
+				note.hidden = false;
+			}
+			setFeedback( 'Đây là bản xem thử, chưa được lưu. Bấm Chèn chữ để tạo ảnh mới chờ duyệt.', 'success' );
+		} catch ( error ) {
+			setFeedback( error.message || config.labels.networkError, 'error' );
+		} finally {
+			busy = false;
+			button.disabled = false;
+		}
+	}
+
+	async function overlayApply( button ) {
+		if ( busy || ! window.confirm( config.labels.confirmOverlay ) ) {
+			return;
+		}
+		busy = true;
+		button.disabled = true;
+		setFeedback( 'Đang chèn chữ và lưu ảnh mới…' );
+		try {
+			await request( '/generations/' + Number( button.dataset.id ) + '/overlay', 'POST', { template: selectedTemplate( button ) } );
+			setFeedback( 'Đã tạo ảnh có chữ và đưa vào danh sách chờ duyệt.', 'success' );
+			await loadGenerations();
+		} catch ( error ) {
+			setFeedback( error.message || config.labels.networkError, 'error' );
+		} finally {
+			busy = false;
+			button.disabled = false;
+		}
+	}
+
 	document.addEventListener( 'click', function ( event ) {
 		const generateButton = event.target.closest( '.ntci-generate' );
 		const approveButton = event.target.closest( '.ntci-approve' );
 		const rejectButton = event.target.closest( '.ntci-reject' );
 		const canvaCreate = event.target.closest( '.ntci-canva-create' );
 		const canvaImport = event.target.closest( '.ntci-canva-import' );
+		const overlayPreviewButton = event.target.closest( '.ntci-overlay-preview' );
+		const overlayApplyButton = event.target.closest( '.ntci-overlay-apply' );
 		if ( generateButton ) {
 			generate( generateButton );
 		} else if ( approveButton ) {
@@ -189,6 +266,10 @@
 			canvaAction( canvaCreate.dataset.id, 'design' );
 		} else if ( canvaImport ) {
 			canvaAction( canvaImport.dataset.id, 'import' );
+		} else if ( overlayPreviewButton ) {
+			overlayPreview( overlayPreviewButton );
+		} else if ( overlayApplyButton ) {
+			overlayApply( overlayApplyButton );
 		}
 	} );
 

@@ -86,10 +86,19 @@ final class NT_Content_Images_Generation_Repository {
 		);
 	}
 
+	/** @return array<int, array<string, mixed>> All generation records of one post, oldest first. */
+	public function get_by_post( int $post_id ): array {
+		global $wpdb;
+		$table = NT_Content_Images_Generation_Migrator::get_table_name();
+		$sql   = $wpdb->prepare( "SELECT g.*, p.post_title FROM {$table} g LEFT JOIN {$wpdb->posts} p ON p.ID = g.post_id WHERE g.post_id = %d ORDER BY g.created_at ASC, g.id ASC", absint( $post_id ) );
+		$rows  = $wpdb->get_results( $sql, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		return array_map( array( $this, 'hydrate' ), is_array( $rows ) ? $rows : array() );
+	}
+
 	public function update_status( int $id, string $status ): int|false {
 		global $wpdb;
 		$status = sanitize_key( $status );
-		if ( ! in_array( $status, array( 'generated', 'approved', 'rejected', 'failed' ), true ) ) {
+		if ( ! in_array( $status, array( 'generated', 'approved', 'rejected', 'failed', 'inserted' ), true ) ) {
 			return false;
 		}
 		$data = array(

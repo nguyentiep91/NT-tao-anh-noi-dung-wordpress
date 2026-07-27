@@ -210,6 +210,12 @@ final class NT_Content_Images_Featured_Image_Generator {
 		if ( null === $item || 'generated' !== (string) $item['status'] ) {
 			return new WP_Error( 'ntci_generation_not_approvable', __( 'Ảnh không ở trạng thái chờ duyệt.', 'nt-tao-anh-noi-dung-wordpress' ) );
 		}
+		if ( 'content' === (string) ( $item['settings']['image_type'] ?? '' ) ) {
+			// In-article images never touch the featured thumbnail; approval only marks them ready to insert.
+			$this->repository->update_status( $generation_id, 'approved' );
+			$this->logger->log( 'info', 'content_generation_approved', array( 'generation_id' => $generation_id, 'post_id' => absint( $item['post_id'] ) ) );
+			return $this->repository->get( $generation_id );
+		}
 		$post_id       = absint( $item['post_id'] );
 		$attachment_id = absint( $item['attachment_id'] );
 		if ( ! get_post( $attachment_id ) ) {
