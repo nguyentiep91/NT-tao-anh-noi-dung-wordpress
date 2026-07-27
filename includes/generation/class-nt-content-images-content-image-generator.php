@@ -159,6 +159,11 @@ final class NT_Content_Images_Content_Image_Generator {
 				$skipped[] = array( 'index' => $index, 'reason' => 'already_generated' );
 				continue;
 			}
+			$daily_limit = absint( $config['daily_limit'] ?? 0 );
+			if ( NT_Content_Images_Usage_Tracker::is_exhausted( $daily_limit ) ) {
+				$errors[] = array( 'index' => $index, 'code' => 'ntci_daily_limit_reached', 'message' => NT_Content_Images_Usage_Tracker::limit_error( $daily_limit )->get_error_message() );
+				break;
+			}
 
 			$prompt   = $this->prompts->build( $brief['brief'], $image, $post );
 			$response = $provider->generate(
@@ -175,6 +180,7 @@ final class NT_Content_Images_Content_Image_Generator {
 				continue;
 			}
 
+			NT_Content_Images_Usage_Tracker::increment( $provider->get_id() );
 			$heading = sanitize_text_field( (string) ( $placement['heading_text'] ?? '' ) );
 			$topic   = sanitize_text_field( (string) ( $brief['brief']['topic'] ?? get_the_title( $post ) ) );
 			$stored  = $this->media->store_content_candidate(

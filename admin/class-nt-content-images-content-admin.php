@@ -36,6 +36,8 @@ final class NT_Content_Images_Content_Admin {
 					'confirmGenerate' => __( 'Tạo toàn bộ ảnh theo kế hoạch cho bài này? Mỗi ảnh là một yêu cầu API có thể phát sinh chi phí.', 'nt-tao-anh-noi-dung-wordpress' ),
 					'confirmInsert'   => __( 'Chèn các ảnh đã duyệt vào nội dung bài viết? Plugin sẽ lưu bản gốc để hoàn tác.', 'nt-tao-anh-noi-dung-wordpress' ),
 					'confirmRollback' => __( 'Khôi phục nội dung bài về trạng thái trước khi chèn ảnh?', 'nt-tao-anh-noi-dung-wordpress' ),
+				'confirmQueue'    => __( 'Bắt đầu chạy hàng loạt? Mỗi ảnh là một yêu cầu API có thể phát sinh chi phí. Đợt chạy tự dừng khi chạm giới hạn ảnh/ngày.', 'nt-tao-anh-noi-dung-wordpress' ),
+				'confirmQueueCancel' => __( 'Hủy đợt chạy hàng loạt hiện tại?', 'nt-tao-anh-noi-dung-wordpress' ),
 					'networkError'    => __( 'Không thể kết nối tới WordPress REST API.', 'nt-tao-anh-noi-dung-wordpress' ),
 				),
 			)
@@ -52,6 +54,26 @@ final class NT_Content_Images_Content_Admin {
 			<p><?php echo esc_html__( 'Plugin lập kế hoạch theo độ dài bài (2000 từ ≈ 2 ảnh), tạo ảnh cho từng phần nội dung, rồi chèn vào vị trí an toàn sau khi được duyệt. Luôn có bản lưu để hoàn tác.', 'nt-tao-anh-noi-dung-wordpress' ); ?></p>
 			<div class="notice notice-warning inline"><p><?php echo esc_html__( 'Quy trình: Xem kế hoạch → Tạo bộ ảnh → Duyệt từng ảnh → Chèn vào bài. Plugin không tự chèn khi chưa duyệt và không đụng tới bài có shortcode được bảo vệ.', 'nt-tao-anh-noi-dung-wordpress' ); ?></p></div>
 			<div id="ntci-content-feedback" class="ntci-content-feedback" aria-live="polite"></div>
+
+			<section class="ntci-content-panel">
+				<h2><?php echo esc_html__( 'Chạy hàng loạt', 'nt-tao-anh-noi-dung-wordpress' ); ?></h2>
+				<p><?php echo esc_html__( 'Xử lý nhiều bài liên tiếp, mỗi bước một ảnh. Giữ tab này mở trong khi chạy; có thể tạm dừng hoặc hủy bất kỳ lúc nào. Đợt chạy tự tạm dừng khi chạm giới hạn ảnh/ngày.', 'nt-tao-anh-noi-dung-wordpress' ); ?></p>
+				<div class="ntci-queue-controls">
+					<label><input type="checkbox" id="ntci-queue-featured" checked> <?php echo esc_html__( 'Ảnh đại diện (bài đang thiếu)', 'nt-tao-anh-noi-dung-wordpress' ); ?></label>
+					<label><input type="checkbox" id="ntci-queue-content" checked> <?php echo esc_html__( 'Ảnh trong bài (theo kế hoạch)', 'nt-tao-anh-noi-dung-wordpress' ); ?></label>
+					<label><?php echo esc_html__( 'Số bài tối đa', 'nt-tao-anh-noi-dung-wordpress' ); ?> <input type="number" id="ntci-queue-limit" min="1" max="50" value="10"></label>
+					<button type="button" class="button button-primary" id="ntci-queue-start"><?php echo esc_html__( 'Bắt đầu chạy', 'nt-tao-anh-noi-dung-wordpress' ); ?></button>
+					<button type="button" class="button" id="ntci-queue-pause" hidden><?php echo esc_html__( 'Tạm dừng', 'nt-tao-anh-noi-dung-wordpress' ); ?></button>
+					<button type="button" class="button" id="ntci-queue-resume" hidden><?php echo esc_html__( 'Tiếp tục', 'nt-tao-anh-noi-dung-wordpress' ); ?></button>
+					<button type="button" class="button" id="ntci-queue-cancel" hidden><?php echo esc_html__( 'Hủy đợt chạy', 'nt-tao-anh-noi-dung-wordpress' ); ?></button>
+				</div>
+				<div class="ntci-queue-progress" id="ntci-queue-progress" hidden>
+					<div class="ntci-queue-bar"><span id="ntci-queue-bar-fill"></span></div>
+					<p id="ntci-queue-summary"></p>
+					<ul id="ntci-queue-items" class="ntci-queue-items"></ul>
+				</div>
+				<p class="description" id="ntci-queue-usage"></p>
+			</section>
 
 			<section class="ntci-content-panel">
 				<div class="ntci-content-heading"><div><h2><?php echo esc_html__( 'Chọn bài viết', 'nt-tao-anh-noi-dung-wordpress' ); ?></h2><p><?php echo esc_html__( 'Danh sách từ kết quả audit, ưu tiên bài dài.', 'nt-tao-anh-noi-dung-wordpress' ); ?></p></div><button type="button" class="button" id="ntci-content-refresh"><?php echo esc_html__( 'Làm mới', 'nt-tao-anh-noi-dung-wordpress' ); ?></button></div>

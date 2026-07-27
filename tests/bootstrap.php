@@ -128,6 +128,7 @@ function wp_remote_retrieve_header( $response, string $header ): string {
 require_once dirname( __DIR__ ) . '/includes/security/class-nt-content-images-secret-redactor.php';
 require_once dirname( __DIR__ ) . '/includes/logging/class-nt-content-images-safe-logger.php';
 require_once dirname( __DIR__ ) . '/includes/generation/class-nt-content-images-generation-settings.php';
+require_once dirname( __DIR__ ) . '/includes/generation/class-nt-content-images-usage-tracker.php';
 require_once dirname( __DIR__ ) . '/includes/generation/class-nt-content-images-generation-lock.php';
 require_once dirname( __DIR__ ) . '/includes/sources/class-nt-content-images-source-settings.php';
 require_once dirname( __DIR__ ) . '/includes/sources/interface-nt-content-images-stock-provider.php';
@@ -144,6 +145,7 @@ require_once dirname( __DIR__ ) . '/includes/providers/class-nt-content-images-f
 require_once dirname( __DIR__ ) . '/includes/providers/class-nt-content-images-image-provider-manager.php';
 require_once dirname( __DIR__ ) . '/includes/canva/class-nt-content-images-canva-settings.php';
 require_once dirname( __DIR__ ) . '/includes/canva/class-nt-content-images-canva-oauth.php';
+require_once dirname( __DIR__ ) . '/includes/media/class-nt-content-images-media-manager.php';
 require_once dirname( __DIR__ ) . '/includes/insertion/class-nt-content-images-content-inserter.php';
 require_once dirname( __DIR__ ) . '/includes/templates/class-nt-content-images-template-registry.php';
 require_once dirname( __DIR__ ) . '/includes/templates/class-nt-content-images-template-settings.php';

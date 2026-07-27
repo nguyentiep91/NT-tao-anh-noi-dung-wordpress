@@ -83,6 +83,10 @@ final class NT_Content_Images_Featured_Image_Generator {
 		if ( ! $provider->is_configured() ) {
 			return new WP_Error( 'ntci_generation_provider_missing', __( 'Chưa cấu hình API key cho nhà cung cấp ảnh đang chọn.', 'nt-tao-anh-noi-dung-wordpress' ) );
 		}
+		$daily_limit = absint( $this->settings->get()['daily_limit'] ?? 0 );
+		if ( NT_Content_Images_Usage_Tracker::is_exhausted( $daily_limit ) ) {
+			return NT_Content_Images_Usage_Tracker::limit_error( $daily_limit );
+		}
 
 		$this->logger->log(
 			'info',
@@ -152,6 +156,7 @@ final class NT_Content_Images_Featured_Image_Generator {
 			return $clean_error;
 		}
 
+		NT_Content_Images_Usage_Tracker::increment( $provider->get_id() );
 		$stored = $this->media->store_featured_candidate( $post_id, $response, $prompt, $config );
 		if ( is_wp_error( $stored ) ) {
 			$this->logger->log(

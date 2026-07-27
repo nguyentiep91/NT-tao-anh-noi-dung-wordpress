@@ -48,6 +48,8 @@ foreach (
 		'nt_content_images_cloudflare_api_token',
 		'nt_content_images_cloudflare_account_id',
 		'nt_content_images_cloudflare_daily_usage',
+		'nt_content_images_daily_usage',
+		'nt_content_images_generation_queue',
 		'nt_content_images_fal_api_key',
 		'nt_content_images_source_settings',
 		'nt_content_images_pexels_api_key',

@@ -197,5 +197,140 @@
 	if ( refresh ) {
 		refresh.addEventListener( 'click', loadCandidates );
 	}
+
+	// ---- Batch queue ----
+	const queueStart = document.querySelector( '#ntci-queue-start' );
+	const queuePause = document.querySelector( '#ntci-queue-pause' );
+	const queueResume = document.querySelector( '#ntci-queue-resume' );
+	const queueCancel = document.querySelector( '#ntci-queue-cancel' );
+	const queueProgress = document.querySelector( '#ntci-queue-progress' );
+	const queueBarFill = document.querySelector( '#ntci-queue-bar-fill' );
+	const queueSummary = document.querySelector( '#ntci-queue-summary' );
+	const queueItems = document.querySelector( '#ntci-queue-items' );
+	const queueUsage = document.querySelector( '#ntci-queue-usage' );
+	let queueLoopActive = false;
+
+	function taskLabel( state ) {
+		const labels = { pending: '⏳', done: '✔', skipped: '↷', error: '✖', 'n/a': '—' };
+		return labels[ state ] || state;
+	}
+
+	function renderQueue( data ) {
+		if ( queueUsage ) {
+			queueUsage.textContent = 'Hôm nay đã tạo ' + Number( data.used_today || 0 ) + '/' + Number( data.daily_limit || 0 ) + ' ảnh AI (giới hạn cấu hình trong trang Ảnh AI & Canva).';
+		}
+		const job = data.job;
+		const running = job && job.status === 'running';
+		const paused = job && job.status === 'paused';
+		if ( queueStart ) { queueStart.hidden = !! ( running || paused ); }
+		if ( queuePause ) { queuePause.hidden = ! running; }
+		if ( queueResume ) { queueResume.hidden = ! paused; }
+		if ( queueCancel ) { queueCancel.hidden = ! ( running || paused ); }
+		if ( ! job ) {
+			if ( queueProgress ) { queueProgress.hidden = true; }
+			return;
+		}
+		queueProgress.hidden = false;
+		const percent = job.total_posts ? Math.round( ( job.done_posts / job.total_posts ) * 100 ) : 0;
+		queueBarFill.style.width = percent + '%';
+		const statusLabels = { running: 'Đang chạy', paused: 'Tạm dừng', completed: 'Hoàn thành', cancelled: 'Đã hủy' };
+		let note = '';
+		if ( paused && job.pause_reason === 'daily_limit' ) {
+			note = ' — đã chạm giới hạn ảnh/ngày, hãy tiếp tục vào ngày mai hoặc tăng giới hạn';
+		}
+		queueSummary.textContent = ( statusLabels[ job.status ] || job.status ) + ': ' + job.done_posts + '/' + job.total_posts + ' bài · ' + job.images + ' ảnh đã tạo · ' + job.errors + ' lỗi' + note;
+		queueItems.innerHTML = ( job.items || [] ).map( function ( item ) {
+			const error = item.error ? ' <em>' + escapeHtml( item.error ) + '</em>' : '';
+			return '<li><code>#' + Number( item.post_id ) + '</code> ' + escapeHtml( item.title ) + ' — đại diện ' + taskLabel( item.featured ) + ' · trong bài ' + taskLabel( item.content ) + ' · ' + Number( item.images ) + ' ảnh' + error + '</li>';
+		} ).join( '' );
+	}
+
+	async function queueLoop() {
+		if ( queueLoopActive ) {
+			return;
+		}
+		queueLoopActive = true;
+		try {
+			for ( ;; ) {
+				let data;
+				try {
+					data = await request( '/queue/step', 'POST', {} );
+				} catch ( error ) {
+					if ( error && error.code === 'ntci_queue_busy' ) {
+						await new Promise( function ( resolve ) { setTimeout( resolve, 3000 ); } );
+						continue;
+					}
+					setFeedback( error.message || config.labels.networkError, 'error' );
+					break;
+				}
+				renderQueue( data );
+				if ( ! data.job || data.job.status !== 'running' ) {
+					if ( data.job && data.job.status === 'completed' ) {
+						setFeedback( 'Đợt chạy hàng loạt đã hoàn thành: ' + data.job.images + ' ảnh. Hãy duyệt trong từng bài hoặc trang Ảnh AI & Canva.', 'success' );
+						loadCandidates();
+					}
+					break;
+				}
+			}
+		} finally {
+			queueLoopActive = false;
+		}
+	}
+
+	async function refreshQueueStatus() {
+		try {
+			const data = await request( '/queue/status' );
+			renderQueue( data );
+			if ( data.job && data.job.status === 'running' ) {
+				setFeedback( 'Đang có đợt chạy hàng loạt dở dang — tiếp tục xử lý…' );
+				queueLoop();
+			}
+		} catch ( error ) {
+			// Trang vẫn dùng được khi REST queue lỗi; chỉ ghi feedback.
+		}
+	}
+
+	if ( queueStart ) {
+		queueStart.addEventListener( 'click', async function () {
+			if ( ! window.confirm( config.labels.confirmQueue ) ) {
+				return;
+			}
+			try {
+				const data = await request( '/queue/start', 'POST', {
+					include_featured: document.querySelector( '#ntci-queue-featured' ).checked,
+					include_content: document.querySelector( '#ntci-queue-content' ).checked,
+					limit: Number( document.querySelector( '#ntci-queue-limit' ).value || 10 )
+				} );
+				renderQueue( data );
+				setFeedback( 'Đã tạo đợt chạy ' + data.job.total_posts + ' bài. Đang xử lý từng ảnh…', 'success' );
+				queueLoop();
+			} catch ( error ) {
+				setFeedback( error.message || config.labels.networkError, 'error' );
+			}
+		} );
+	}
+	if ( queuePause ) {
+		queuePause.addEventListener( 'click', async function () {
+			try { renderQueue( await request( '/queue/pause', 'POST', {} ) ); } catch ( error ) { setFeedback( error.message, 'error' ); }
+		} );
+	}
+	if ( queueResume ) {
+		queueResume.addEventListener( 'click', async function () {
+			try {
+				renderQueue( await request( '/queue/resume', 'POST', {} ) );
+				queueLoop();
+			} catch ( error ) { setFeedback( error.message, 'error' ); }
+		} );
+	}
+	if ( queueCancel ) {
+		queueCancel.addEventListener( 'click', async function () {
+			if ( ! window.confirm( config.labels.confirmQueueCancel ) ) {
+				return;
+			}
+			try { renderQueue( await request( '/queue/cancel', 'POST', {} ) ); } catch ( error ) { setFeedback( error.message, 'error' ); }
+		} );
+	}
+
 	loadCandidates();
+	refreshQueueStatus();
 }() );

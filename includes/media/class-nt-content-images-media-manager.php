@@ -99,6 +99,18 @@ final class NT_Content_Images_Media_Manager {
 			return new WP_Error( 'ntci_media_mime_invalid', __( 'Dữ liệu không phải ảnh PNG, JPEG hoặc WebP hợp lệ.', 'nt-tao-anh-noi-dung-wordpress' ) );
 		}
 
+		/**
+		 * Provider PNG (FLUX trả về ~1.5 MB/ảnh) được nén sang WebP trước khi
+		 * lưu để giảm dung lượng trang. Tắt bằng filter khi cần giữ nguyên gốc.
+		 */
+		if ( apply_filters( 'nt_content_images_convert_webp', true, $detected_mime, $metadata ) ) {
+			$converted = self::convert_bytes_to_webp( $bytes, $detected_mime, absint( apply_filters( 'nt_content_images_webp_quality', 82 ) ) );
+			if ( null !== $converted && strlen( $converted['bytes'] ) < strlen( $bytes ) ) {
+				$bytes         = $converted['bytes'];
+				$detected_mime = $converted['mime'];
+			}
+		}
+
 		$extension = 'image/png' === $detected_mime ? 'png' : ( 'image/jpeg' === $detected_mime ? 'jpg' : 'webp' );
 		$slug = sanitize_title( get_the_title( $post ) );
 		$suffix = sanitize_key( (string) ( $metadata['provider'] ?? $metadata['source_kind'] ?? 'image' ) );
@@ -177,6 +189,38 @@ final class NT_Content_Images_Media_Manager {
 			'height'        => is_array( $final_info ) ? absint( $final_info[1] ?? 0 ) : absint( $info[1] ?? 0 ),
 			'file_size'     => false === $final_size ? strlen( $bytes ) : absint( $final_size ),
 			'checksum'      => is_string( $final_checksum ) ? $final_checksum : hash( 'sha256', $bytes ),
+		);
+	}
+
+	/**
+	 * Re-encodes PNG/JPEG bytes as WebP when GD supports it.
+	 *
+	 * @return array{bytes: string, mime: string}|null Null when conversion is unavailable or failed.
+	 */
+	public static function convert_bytes_to_webp( string $bytes, string $mime, int $quality = 82 ) {
+		if ( 'image/webp' === $mime || '' === $bytes ) {
+			return null;
+		}
+		if ( ! function_exists( 'imagewebp' ) || ! function_exists( 'imagecreatefromstring' ) ) {
+			return null;
+		}
+		$image = @imagecreatefromstring( $bytes ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+		if ( false === $image ) {
+			return null;
+		}
+		imagepalettetotruecolor( $image );
+		imagealphablending( $image, false );
+		imagesavealpha( $image, true );
+		ob_start();
+		$ok      = imagewebp( $image, null, max( 1, min( 100, $quality ) ) );
+		$encoded = (string) ob_get_clean();
+		imagedestroy( $image );
+		if ( ! $ok || '' === $encoded ) {
+			return null;
+		}
+		return array(
+			'bytes' => $encoded,
+			'mime'  => 'image/webp',
 		);
 	}
 

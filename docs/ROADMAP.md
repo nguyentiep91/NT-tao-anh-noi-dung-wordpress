@@ -78,9 +78,11 @@ Mục tiêu: repository có cấu trúc rõ ràng, plugin kích hoạt an toàn 
 
 ## Phase 3 — Queue và Workflow
 
-- [ ] Hàng đợi batch.
-- [ ] Trạng thái tạo ảnh và retry có giới hạn.
-- [ ] Rate limit và nhật ký thao tác.
+- [x] Hàng đợi batch: mỗi bước một ảnh, pause/resume/cancel, lỗi từng bài không chặn cả đợt.
+- [x] Giới hạn tổng ảnh AI/ngày cho mọi provider; đợt chạy tự tạm dừng khi chạm trần.
+- [x] Nén WebP khi lưu ảnh provider vào Media Library.
+- [ ] Chạy nền bằng WP-Cron/Action Scheduler (hiện cần giữ tab admin mở).
+- [ ] Retry tự động có giới hạn cho lỗi tạm thời.
 
 ## Phase 4 — Nhà cung cấp AI đầu tiên
 
