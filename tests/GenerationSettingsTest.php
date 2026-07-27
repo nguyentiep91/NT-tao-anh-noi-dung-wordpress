@@ -36,7 +36,26 @@ final class GenerationSettingsTest extends TestCase {
 		self::assertSame( 'openrouter', $result['provider'] );
 		self::assertSame( 'google/gemini-2.5-flash-image', $result['model'] );
 		self::assertTrue( $result['configured'] );
+		self::assertTrue( $result['ready'] );
 		self::assertArrayNotHasKey( 'openrouter_api_key', $result );
+	}
+
+	public function test_saves_openrouter_key_before_a_model_is_selected(): void {
+		$settings = new NT_Content_Images_Generation_Settings();
+		$result = $settings->save(
+			array(
+				'provider' => 'openrouter',
+				'openrouter_model' => '',
+				'openrouter_api_key' => 'sk-or-v1-first-time-configuration-key',
+			)
+		);
+
+		self::assertIsArray( $result );
+		self::assertSame( 'openrouter', $result['provider'] );
+		self::assertTrue( $result['configured'] );
+		self::assertFalse( $result['providers']['openrouter']['model_configured'] );
+		self::assertFalse( $result['ready'] );
+		self::assertSame( 'database', $result['providers']['openrouter']['key_source'] );
 	}
 
 	public function test_rejects_invalid_openrouter_model(): void {
