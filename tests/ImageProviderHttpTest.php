@@ -119,6 +119,67 @@ final class ImageProviderHttpTest extends TestCase {
 		self::assertSame( 'ntci_openrouter_vector_not_supported', $result->get_error_code() );
 	}
 
+	public function test_openrouter_retries_with_png_when_webp_parameter_rejected(): void {
+		$this->configureOpenRouter();
+		$calls = array();
+		$GLOBALS['ntci_test_http_post'] = static function ( string $url, array $args ) use ( &$calls ) {
+			$calls[] = json_decode( (string) ( $args['body'] ?? '' ), true );
+			if ( 1 === count( $calls ) ) {
+				return array(
+					'response' => array( 'code' => 400 ),
+					'body' => json_encode(
+						array(
+							'error' => array(
+								'message' => 'No provider for black-forest-labs/flux.2-flex supports the requested parameter(s): output_format "webp". Provider rejections: Black Forest Labs: output_format: not supported. Accepted: png, jpeg',
+							),
+						)
+					),
+				);
+			}
+			return array(
+				'response' => array( 'code' => 200 ),
+				'body' => json_encode(
+					array(
+						'data' => array(
+							array(
+								'b64_json' => self::PNG_BASE64,
+								'media_type' => 'image/png',
+							),
+						),
+					)
+				),
+			);
+		};
+
+		$provider = new NT_Content_Images_OpenRouter_Image_Provider( new NT_Content_Images_Generation_Settings() );
+		$result = $provider->generate( array( 'prompt' => 'Professional editorial image' ) );
+
+		self::assertIsArray( $result );
+		self::assertSame( 'image/png', $result['mime_type'] );
+		self::assertCount( 2, $calls );
+		self::assertSame( 'webp', $calls[0]['output_format'] ?? '' );
+		self::assertSame( 'png', $calls[1]['output_format'] ?? '' );
+	}
+
+	public function test_openrouter_does_not_retry_non_parameter_errors(): void {
+		$this->configureOpenRouter();
+		$call_count = 0;
+		$GLOBALS['ntci_test_http_post'] = static function () use ( &$call_count ) {
+			$call_count++;
+			return array(
+				'response' => array( 'code' => 402 ),
+				'body' => json_encode( array( 'error' => array( 'message' => 'Insufficient credits' ) ) ),
+			);
+		};
+
+		$provider = new NT_Content_Images_OpenRouter_Image_Provider( new NT_Content_Images_Generation_Settings() );
+		$result = $provider->generate( array( 'prompt' => 'Professional editorial image' ) );
+
+		self::assertInstanceOf( WP_Error::class, $result );
+		self::assertSame( 'ntci_openrouter_http_402', $result->get_error_code() );
+		self::assertSame( 1, $call_count );
+	}
+
 	private function configureOpenRouter(): void {
 		$GLOBALS['ntci_test_options']['nt_content_images_generation_settings'] = array(
 			'provider' => 'openrouter',

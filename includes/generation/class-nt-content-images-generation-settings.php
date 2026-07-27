@@ -91,6 +91,13 @@ final class NT_Content_Images_Generation_Settings {
 		if ( ! in_array( $quality, array( 'low', 'medium', 'high', 'auto' ), true ) ) {
 			return new WP_Error( 'ntci_generation_invalid_quality', __( 'Chất lượng ảnh không hợp lệ.', 'nt-tao-anh-noi-dung-wordpress' ) );
 		}
+		$cloudflare_key_raw = trim( (string) ( $raw['cloudflare_api_key'] ?? '' ) );
+		if ( '' !== $cloudflare_key_raw && preg_match( '/^[a-f0-9]{37}$/i', $cloudflare_key_raw ) ) {
+			return new WP_Error(
+				'ntci_generation_cloudflare_global_key',
+				__( 'Giá trị vừa nhập giống Global API Key của Cloudflare — loại này không dùng được cho Workers AI. Hãy vào Cloudflare → My Profile → API Tokens → Create Token, chọn mẫu "Workers AI", rồi dán API Token (40 ký tự) vào đây.', 'nt-tao-anh-noi-dung-wordpress' )
+			);
+		}
 
 		update_option(
 			self::OPTION,

@@ -26,7 +26,7 @@ final class NT_Content_Images_Featured_Prompt_Builder {
 		$type        = sanitize_key( (string) ( $brief['content_type'] ?? 'general_education' ) );
 		$intent      = sanitize_key( (string) ( $brief['search_intent'] ?? 'informational' ) );
 		$direction   = is_array( $brief['visual_direction'] ?? null ) ? $brief['visual_direction'] : array();
-		$art         = sanitize_textarea_field( (string) ( $direction['art_direction'] ?? 'Professional editorial photography with a clear subject and credible modern context.' ) );
+		$art         = sanitize_textarea_field( (string) ( $direction['art_direction'] ?? 'Candid documentary photography with a clear subject and credible everyday working context.' ) );
 		$restrictions= is_array( $brief['restrictions'] ?? null ) ? array_map( 'sanitize_key', $brief['restrictions'] ) : array();
 		$colors      = implode( ', ', array_filter( array( (string) ( $brand['primary_color'] ?? '' ), (string) ( $brand['secondary_color'] ?? '' ), (string) ( $brand['accent_color'] ?? '' ) ) ) );
 		$restriction_text = implode( ', ', array_map( static fn( string $item ): string => str_replace( '_', ' ', $item ), array_slice( $restrictions, 0, 20 ) ) );
@@ -38,8 +38,10 @@ final class NT_Content_Images_Featured_Prompt_Builder {
 			'Visual direction: ' . $art,
 			'Use a credible Vietnamese professional context when relevant, without national symbols or official branding.',
 			'Landscape composition generated at 1536x1024 and designed to remain visually balanced after a centered 16:9 crop.',
-			'Keep the main subject away from the outer edges. Use a clear focal point, realistic proportions, professional lighting and uncluttered background.',
-			'Use brand-inspired colors where natural: ' . ( '' !== $colors ? $colors : 'restrained corporate colors' ) . '.',
+			'Keep the main subject away from the outer edges. Use a clear focal point, realistic proportions and an uncluttered background.',
+			'Photorealistic candid style, like a real photo taken during an ordinary working day: natural ambient light with soft imperfect shadows, true-to-life skin and fabric textures, believable everyday details, unposed natural expressions, slight depth of field, mild film grain.',
+			'Avoid the polished AI stock-photo look: no glossy CGI or 3D-render feel, no oversaturated colors, no flawless studio lighting, no posed models smiling at the camera, no sterile spotless environment.',
+			'Use brand-inspired colors only as subtle accents where natural: ' . ( '' !== $colors ? $colors : 'restrained corporate colors' ) . '.',
 			'Do not generate readable text, letters, numbers, logos, watermarks, signatures, certificates, seals or website interfaces.',
 		);
 		if ( '' !== $restriction_text ) {

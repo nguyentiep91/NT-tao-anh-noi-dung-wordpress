@@ -40,6 +40,20 @@ final class GenerationSettingsTest extends TestCase {
 		self::assertArrayNotHasKey( 'openrouter_api_key', $result );
 	}
 
+	public function test_rejects_cloudflare_global_api_key_with_clear_message(): void {
+		$settings = new NT_Content_Images_Generation_Settings();
+		$result = $settings->save(
+			array(
+				'provider'           => 'cloudflare',
+				'cloudflare_api_key' => 'a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a', // 37 hex chars = Global API Key format.
+			)
+		);
+
+		self::assertInstanceOf( WP_Error::class, $result );
+		self::assertSame( 'ntci_generation_cloudflare_global_key', $result->get_error_code() );
+		self::assertSame( '', get_option( 'nt_content_images_cloudflare_api_token', '' ) );
+	}
+
 	public function test_saves_openrouter_key_before_a_model_is_selected(): void {
 		$settings = new NT_Content_Images_Generation_Settings();
 		$result = $settings->save(

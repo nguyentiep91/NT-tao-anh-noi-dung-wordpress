@@ -96,7 +96,7 @@ final class NT_Content_Images_OpenRouter_Image_Provider implements NT_Content_Im
 			return new WP_Error( 'ntci_openrouter_prompt_invalid', __( 'Prompt tạo ảnh không hợp lệ.', 'nt-tao-anh-noi-dung-wordpress' ) );
 		}
 
-		$body = apply_filters(
+		$base = apply_filters(
 			'nt_content_images_openrouter_image_request',
 			array(
 				'model'         => $model,
@@ -107,25 +107,49 @@ final class NT_Content_Images_OpenRouter_Image_Provider implements NT_Content_Im
 			),
 			$request
 		);
-		$response = wp_remote_post(
-			self::ENDPOINT,
-			array(
-				'timeout'     => $config['timeout'],
-				'redirection' => 0,
-				'headers'     => $this->headers( $key ),
-				'body'        => wp_json_encode( $body, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ),
-				'data_format' => 'body',
-			)
+
+		/**
+		 * Each OpenRouter image model accepts a different parameter set (e.g.
+		 * Black Forest Labs rejects webp). Retry with safer bodies whenever the
+		 * provider rejects a request parameter.
+		 */
+		$attempts = array(
+			$base,
+			array_merge( $base, array( 'output_format' => 'png' ) ),
+			array_intersect_key( $base, array( 'model' => true, 'prompt' => true ) ),
 		);
-		if ( is_wp_error( $response ) ) {
-			return new WP_Error( 'ntci_openrouter_transport_error', NT_Content_Images_Secret_Redactor::redact_message( $response->get_error_message() ) );
-		}
-		$status = wp_remote_retrieve_response_code( $response );
-		$data = json_decode( wp_remote_retrieve_body( $response ), true );
-		if ( $status < 200 || $status >= 300 ) {
+
+		$data       = null;
+		$last_error = null;
+		foreach ( $attempts as $body ) {
+			$response = wp_remote_post(
+				self::ENDPOINT,
+				array(
+					'timeout'     => $config['timeout'],
+					'redirection' => 0,
+					'headers'     => $this->headers( $key ),
+					'body'        => wp_json_encode( $body, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ),
+					'data_format' => 'body',
+				)
+			);
+			if ( is_wp_error( $response ) ) {
+				return new WP_Error( 'ntci_openrouter_transport_error', NT_Content_Images_Secret_Redactor::redact_message( $response->get_error_message() ) );
+			}
+			$status = wp_remote_retrieve_response_code( $response );
+			$data = json_decode( wp_remote_retrieve_body( $response ), true );
+			if ( $status >= 200 && $status < 300 ) {
+				$last_error = null;
+				break;
+			}
 			$message = is_array( $data ) ? (string) ( $data['error']['message'] ?? $data['message'] ?? '' ) : '';
 			$message = NT_Content_Images_Secret_Redactor::redact_message( $message );
-			return new WP_Error( 'ntci_openrouter_http_' . absint( $status ), '' !== $message ? $message : __( 'OpenRouter không thể tạo ảnh.', 'nt-tao-anh-noi-dung-wordpress' ), array( 'status' => $status ) );
+			$last_error = new WP_Error( 'ntci_openrouter_http_' . absint( $status ), '' !== $message ? $message : __( 'OpenRouter không thể tạo ảnh.', 'nt-tao-anh-noi-dung-wordpress' ), array( 'status' => $status ) );
+			if ( ! $this->is_parameter_rejection( $status, $message ) ) {
+				break;
+			}
+		}
+		if ( null !== $last_error ) {
+			return $last_error;
 		}
 		$item = is_array( $data['data'][0] ?? null ) ? $data['data'][0] : array();
 		$encoded = is_string( $item['b64_json'] ?? null ) ? $item['b64_json'] : '';
@@ -156,6 +180,14 @@ final class NT_Content_Images_OpenRouter_Image_Provider implements NT_Content_Im
 			'usage'          => is_array( $data['usage'] ?? null ) ? NT_Content_Images_Secret_Redactor::redact( $data['usage'] ) : array(),
 			'created'        => absint( $data['created'] ?? time() ),
 		);
+	}
+
+	/** Detects "unsupported parameter" rejections that are worth retrying with a safer body. */
+	private function is_parameter_rejection( int $status, string $message ): bool {
+		if ( 400 !== $status ) {
+			return false;
+		}
+		return (bool) preg_match( '/parameter|not supported|unsupported|Accepted:/i', $message );
 	}
 
 	/** @return array<int, array<string, mixed>>|WP_Error */
