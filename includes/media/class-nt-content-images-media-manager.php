@@ -1,6 +1,6 @@
 <?php
 /**
- * Saves generated image bytes into the WordPress Media Library.
+ * Saves generated or imported image bytes into the WordPress Media Library.
  *
  * @package NT_Content_Images
  */
@@ -16,34 +16,87 @@ final class NT_Content_Images_Media_Manager {
 	 * @return array<string, mixed>|WP_Error
 	 */
 	public function store_featured_candidate( int $post_id, array $image, string $prompt, array $settings ) {
+		return $this->store_candidate(
+			$post_id,
+			$image,
+			$settings,
+			array(
+				'source_kind' => 'ai',
+				'provider'    => sanitize_key( (string) ( $image['provider'] ?? 'ai' ) ),
+				'prompt_hash' => hash( 'sha256', $prompt ),
+				'caption'     => __( 'Ảnh được tạo tự động từ nội dung bài viết và đang chờ duyệt.', 'nt-tao-anh-noi-dung-wordpress' ),
+			)
+		);
+	}
+
+	/**
+	 * @param array<string, mixed> $image Downloaded image bytes.
+	 * @param array<string, mixed> $asset Normalized stock metadata.
+	 * @param array<string, mixed> $settings Image settings.
+	 * @return array<string, mixed>|WP_Error
+	 */
+	public function store_stock_candidate( int $post_id, array $image, array $asset, array $settings ) {
+		return $this->store_candidate(
+			$post_id,
+			$image,
+			$settings,
+			array(
+				'source_kind'       => 'stock',
+				'provider'          => sanitize_key( (string) ( $asset['provider'] ?? 'stock' ) ),
+				'provider_asset_id' => sanitize_text_field( (string) ( $asset['asset_id'] ?? '' ) ),
+				'source_page_url'   => esc_url_raw( (string) ( $asset['source_page_url'] ?? '' ) ),
+				'creator_name'      => sanitize_text_field( (string) ( $asset['creator_name'] ?? '' ) ),
+				'creator_url'       => esc_url_raw( (string) ( $asset['creator_url'] ?? '' ) ),
+				'license_code'      => sanitize_key( (string) ( $asset['license_code'] ?? '' ) ),
+				'license_url'       => esc_url_raw( (string) ( $asset['license_url'] ?? '' ) ),
+				'attribution'       => sanitize_text_field( (string) ( $asset['attribution'] ?? '' ) ),
+				'caption'           => sanitize_text_field( (string) ( $asset['attribution'] ?? __( 'Ảnh kho được nhập và đang chờ duyệt.', 'nt-tao-anh-noi-dung-wordpress' ) ) ),
+			)
+		);
+	}
+
+	/**
+	 * @param array<string, mixed> $image Image bytes and MIME.
+	 * @param array<string, mixed> $settings Target dimensions.
+	 * @param array<string, mixed> $metadata Trace metadata.
+	 * @return array<string, mixed>|WP_Error
+	 */
+	private function store_candidate( int $post_id, array $image, array $settings, array $metadata ) {
 		$post = get_post( $post_id );
 		if ( ! $post instanceof WP_Post ) {
 			return new WP_Error( 'ntci_media_post_missing', __( 'Không tìm thấy nội dung để lưu ảnh.', 'nt-tao-anh-noi-dung-wordpress' ) );
 		}
 		$bytes = (string) ( $image['bytes'] ?? '' );
-		if ( '' === $bytes ) {
-			return new WP_Error( 'ntci_media_bytes_missing', __( 'Dữ liệu ảnh trống.', 'nt-tao-anh-noi-dung-wordpress' ) );
+		if ( '' === $bytes || strlen( $bytes ) > 25165824 ) {
+			return new WP_Error( 'ntci_media_bytes_missing', __( 'Dữ liệu ảnh trống hoặc vượt quá 25 MB.', 'nt-tao-anh-noi-dung-wordpress' ) );
+		}
+		$info = function_exists( 'getimagesizefromstring' ) ? getimagesizefromstring( $bytes ) : false;
+		$detected_mime = is_array( $info ) ? sanitize_mime_type( (string) ( $info['mime'] ?? '' ) ) : '';
+		if ( ! in_array( $detected_mime, array( 'image/webp', 'image/png', 'image/jpeg' ), true ) ) {
+			return new WP_Error( 'ntci_media_mime_invalid', __( 'Dữ liệu không phải ảnh PNG, JPEG hoặc WebP hợp lệ.', 'nt-tao-anh-noi-dung-wordpress' ) );
 		}
 
-		$extension = sanitize_key( (string) ( $image['extension'] ?? 'webp' ) );
-		$extension = in_array( $extension, array( 'webp', 'png', 'jpg', 'jpeg' ), true ) ? $extension : 'webp';
-		$slug      = sanitize_title( get_the_title( $post ) );
-		$filename  = wp_unique_filename( wp_upload_dir()['path'], ( $slug ?: 'featured-image-' . $post_id ) . '-ai.' . $extension );
-		$upload    = wp_upload_bits( $filename, null, $bytes );
+		$extension = 'image/png' === $detected_mime ? 'png' : ( 'image/jpeg' === $detected_mime ? 'jpg' : 'webp' );
+		$slug = sanitize_title( get_the_title( $post ) );
+		$suffix = sanitize_key( (string) ( $metadata['provider'] ?? $metadata['source_kind'] ?? 'image' ) );
+		$uploads = wp_upload_dir();
+		if ( ! empty( $uploads['error'] ) || empty( $uploads['path'] ) ) {
+			return new WP_Error( 'ntci_media_upload_dir_failed', sanitize_text_field( (string) ( $uploads['error'] ?? __( 'Thư mục uploads không khả dụng.', 'nt-tao-anh-noi-dung-wordpress' ) ) ) );
+		}
+		$filename = wp_unique_filename( $uploads['path'], ( $slug ?: 'featured-image-' . $post_id ) . '-' . ( $suffix ?: 'image' ) . '.' . $extension );
+		$upload = wp_upload_bits( $filename, null, $bytes );
 		if ( ! empty( $upload['error'] ) ) {
 			return new WP_Error( 'ntci_media_upload_failed', sanitize_text_field( (string) $upload['error'] ) );
 		}
 
 		$file = (string) $upload['file'];
 		$this->crop_to_target( $file, absint( $settings['target_width'] ?? 1280 ), absint( $settings['target_height'] ?? 720 ) );
-		$filetype = wp_check_filetype( basename( $file ), null );
-		$mime     = (string) ( $filetype['type'] ?: ( $image['mime_type'] ?? 'image/webp' ) );
 		$attachment_id = wp_insert_attachment(
 			array(
-				'post_mime_type' => sanitize_mime_type( $mime ),
+				'post_mime_type' => $detected_mime,
 				'post_title'     => sanitize_text_field( get_the_title( $post ) ),
 				'post_content'   => '',
-				'post_excerpt'   => __( 'Ảnh được tạo tự động từ nội dung bài viết và đang chờ duyệt.', 'nt-tao-anh-noi-dung-wordpress' ),
+				'post_excerpt'   => sanitize_text_field( (string) ( $metadata['caption'] ?? '' ) ),
 				'post_status'    => 'inherit',
 			),
 			$file,
@@ -56,20 +109,49 @@ final class NT_Content_Images_Media_Manager {
 		}
 
 		require_once ABSPATH . 'wp-admin/includes/image.php';
-		$metadata = wp_generate_attachment_metadata( $attachment_id, $file );
-		if ( is_array( $metadata ) ) {
-			wp_update_attachment_metadata( $attachment_id, $metadata );
+		$attachment_metadata = wp_generate_attachment_metadata( $attachment_id, $file );
+		if ( is_array( $attachment_metadata ) ) {
+			wp_update_attachment_metadata( $attachment_id, $attachment_metadata );
 		}
 		update_post_meta( $attachment_id, '_wp_attachment_image_alt', sanitize_text_field( get_the_title( $post ) ) );
-		update_post_meta( $attachment_id, '_nt_content_images_generated', '1' );
+		update_post_meta( $attachment_id, '_nt_content_images_generated', 'ai' === (string) ( $metadata['source_kind'] ?? '' ) ? '1' : '0' );
 		update_post_meta( $attachment_id, '_nt_content_images_source_post_id', $post_id );
-		update_post_meta( $attachment_id, '_nt_content_images_prompt_hash', hash( 'sha256', $prompt ) );
+		$text_meta = array(
+			'_ntci_source_kind'              => $metadata['source_kind'] ?? '',
+			'_ntci_source_provider'          => $metadata['provider'] ?? '',
+			'_ntci_source_asset_id'          => $metadata['provider_asset_id'] ?? '',
+			'_ntci_creator_name'             => $metadata['creator_name'] ?? '',
+			'_ntci_license_code'             => $metadata['license_code'] ?? '',
+			'_ntci_attribution_text'         => $metadata['attribution'] ?? '',
+			'_nt_content_images_prompt_hash' => $metadata['prompt_hash'] ?? '',
+		);
+		foreach ( $text_meta as $key => $value ) {
+			if ( '' !== (string) $value ) {
+				update_post_meta( $attachment_id, $key, sanitize_text_field( (string) $value ) );
+			}
+		}
+		foreach ( array(
+			'_ntci_source_page_url' => $metadata['source_page_url'] ?? '',
+			'_ntci_creator_url'     => $metadata['creator_url'] ?? '',
+			'_ntci_license_url'     => $metadata['license_url'] ?? '',
+		) as $key => $value ) {
+			if ( '' !== (string) $value ) {
+				update_post_meta( $attachment_id, $key, esc_url_raw( (string) $value ) );
+			}
+		}
 
+		$final_info = @getimagesize( $file ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+		$final_size = file_exists( $file ) ? filesize( $file ) : false;
+		$final_checksum = file_exists( $file ) ? hash_file( 'sha256', $file ) : false;
 		return array(
 			'attachment_id' => absint( $attachment_id ),
 			'file'          => $file,
 			'url'           => wp_get_attachment_url( $attachment_id ),
-			'mime_type'     => $mime,
+			'mime_type'     => $detected_mime,
+			'width'         => is_array( $final_info ) ? absint( $final_info[0] ?? 0 ) : absint( $info[0] ?? 0 ),
+			'height'        => is_array( $final_info ) ? absint( $final_info[1] ?? 0 ) : absint( $info[1] ?? 0 ),
+			'file_size'     => false === $final_size ? strlen( $bytes ) : absint( $final_size ),
+			'checksum'      => is_string( $final_checksum ) ? $final_checksum : hash( 'sha256', $bytes ),
 		);
 	}
 

@@ -35,7 +35,7 @@ final class NT_Content_Images_Generation_Admin {
 	}
 
 	public function register_menu(): void {
-		add_submenu_page( 'nt-content-images', __( 'Tạo ảnh AI', 'nt-tao-anh-noi-dung-wordpress' ), __( 'Tạo ảnh AI', 'nt-tao-anh-noi-dung-wordpress' ), 'manage_options', 'nt-content-images-generation', array( $this, 'render_page' ) );
+		add_submenu_page( 'nt-content-images', __( 'Ảnh AI & Canva', 'nt-tao-anh-noi-dung-wordpress' ), __( 'Ảnh AI & Canva', 'nt-tao-anh-noi-dung-wordpress' ), 'manage_options', 'nt-content-images-generation', array( $this, 'render_page' ) );
 	}
 
 	public function enqueue_assets(): void {
@@ -120,36 +120,47 @@ final class NT_Content_Images_Generation_Admin {
 		?>
 		<div class="wrap ntci-generation" id="ntci-generation-app">
 			<h1><?php echo esc_html__( 'Phân tích nội dung và tạo ảnh bằng AI', 'nt-tao-anh-noi-dung-wordpress' ); ?></h1>
-			<p><?php echo esc_html__( 'Chọn OpenAI hoặc OpenRouter để tạo ảnh. Ảnh được lưu vào Media Library và chỉ trở thành ảnh đại diện sau khi quản trị viên duyệt.', 'nt-tao-anh-noi-dung-wordpress' ); ?></p>
-			<div class="notice notice-warning inline"><p><?php echo esc_html__( 'Mỗi lần bấm Tạo ảnh gửi đúng một yêu cầu và có thể phát sinh chi phí. Plugin không tự chạy hàng loạt và không ghi đè ảnh đại diện hiện có.', 'nt-tao-anh-noi-dung-wordpress' ); ?></p></div>
+			<p><?php echo esc_html__( 'Chọn Cloudflare, fal.ai, OpenRouter hoặc OpenAI. Ảnh được lưu vào Media Library và chỉ trở thành ảnh đại diện sau khi quản trị viên duyệt.', 'nt-tao-anh-noi-dung-wordpress' ); ?></p>
+			<div class="notice notice-warning inline"><p><?php echo esc_html__( 'Mỗi lần bấm Tạo ảnh gửi đúng một yêu cầu và có thể phát sinh chi phí. Plugin không tự fallback sang provider trả phí và không ghi đè ảnh đại diện hiện có.', 'nt-tao-anh-noi-dung-wordpress' ); ?></p></div>
 			<?php if ( $status ) : ?><div class="notice notice-success inline"><p><?php echo esc_html__( 'Đã cập nhật cấu hình hoặc trạng thái kết nối.', 'nt-tao-anh-noi-dung-wordpress' ); ?></p></div><?php endif; ?>
 			<?php if ( $error ) : ?><div class="notice notice-error inline"><p><?php echo esc_html( $error ); ?></p></div><?php endif; ?>
 
 			<section class="ntci-generation-panel">
 				<h2><?php echo esc_html__( 'Nhà cung cấp tạo ảnh', 'nt-tao-anh-noi-dung-wordpress' ); ?></h2>
-				<p><strong>OpenAI:</strong> <?php echo esc_html( $config['providers']['openai']['configured'] ? __( 'đã cấu hình', 'nt-tao-anh-noi-dung-wordpress' ) : __( 'chưa cấu hình', 'nt-tao-anh-noi-dung-wordpress' ) ); ?> — <code><?php echo esc_html( $config['providers']['openai']['key_source'] ); ?></code> &nbsp; <strong>OpenRouter:</strong> <?php echo esc_html( $config['providers']['openrouter']['configured'] ? __( 'đã cấu hình', 'nt-tao-anh-noi-dung-wordpress' ) : __( 'chưa cấu hình', 'nt-tao-anh-noi-dung-wordpress' ) ); ?> — <code><?php echo esc_html( $config['providers']['openrouter']['key_source'] ); ?></code></p>
+				<p>
+					<strong>Cloudflare:</strong> <?php echo esc_html( $config['providers']['cloudflare']['configured'] ? __( 'đã cấu hình', 'nt-tao-anh-noi-dung-wordpress' ) : __( 'chưa cấu hình', 'nt-tao-anh-noi-dung-wordpress' ) ); ?> ·
+					<strong>fal.ai:</strong> <?php echo esc_html( $config['providers']['fal']['configured'] ? __( 'đã cấu hình', 'nt-tao-anh-noi-dung-wordpress' ) : __( 'chưa cấu hình', 'nt-tao-anh-noi-dung-wordpress' ) ); ?> ·
+					<strong>OpenRouter:</strong> <?php echo esc_html( $config['providers']['openrouter']['configured'] ? __( 'đã cấu hình', 'nt-tao-anh-noi-dung-wordpress' ) : __( 'chưa cấu hình', 'nt-tao-anh-noi-dung-wordpress' ) ); ?> ·
+					<strong>OpenAI:</strong> <?php echo esc_html( $config['providers']['openai']['configured'] ? __( 'đã cấu hình', 'nt-tao-anh-noi-dung-wordpress' ) : __( 'chưa cấu hình', 'nt-tao-anh-noi-dung-wordpress' ) ); ?>
+				</p>
 				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 					<input type="hidden" name="action" value="nt_content_images_save_generation_settings">
 					<?php wp_nonce_field( 'nt_content_images_save_generation_settings' ); ?>
 					<div class="ntci-generation-grid">
-						<label><span><?php echo esc_html__( 'Provider đang sử dụng', 'nt-tao-anh-noi-dung-wordpress' ); ?></span><select id="ntci-provider" name="generation_settings[provider]"><option value="openai" <?php selected( $config['provider'], 'openai' ); ?>>OpenAI Images</option><option value="openrouter" <?php selected( $config['provider'], 'openrouter' ); ?>>OpenRouter Images</option></select></label>
+						<label><span><?php echo esc_html__( 'Provider đang sử dụng', 'nt-tao-anh-noi-dung-wordpress' ); ?></span><select id="ntci-provider" name="generation_settings[provider]"><option value="cloudflare" <?php selected( $config['provider'], 'cloudflare' ); ?>>Cloudflare Workers AI</option><option value="fal" <?php selected( $config['provider'], 'fal' ); ?>>fal.ai FLUX Schnell</option><option value="openrouter" <?php selected( $config['provider'], 'openrouter' ); ?>>OpenRouter Images</option><option value="openai" <?php selected( $config['provider'], 'openai' ); ?>>OpenAI Images</option></select></label>
+						<label><span>Cloudflare Account ID</span><input type="text" name="generation_settings[cloudflare_account_id]" autocomplete="off" placeholder="Để trống để giữ giá trị" <?php disabled( 'wp-config' === $config['providers']['cloudflare']['account_source'] ); ?>></label>
+						<label><span>Cloudflare Workers AI token</span><input type="password" name="generation_settings[cloudflare_api_key]" autocomplete="new-password" placeholder="Để trống để giữ token" <?php disabled( 'wp-config' === $config['providers']['cloudflare']['key_source'] ); ?>></label>
+						<label><span>fal.ai API key</span><input type="password" name="generation_settings[fal_api_key]" autocomplete="new-password" placeholder="Để trống để giữ key" <?php disabled( 'wp-config' === $config['providers']['fal']['key_source'] ); ?>></label>
 						<label><span><?php echo esc_html__( 'OpenAI API key', 'nt-tao-anh-noi-dung-wordpress' ); ?></span><input type="password" name="generation_settings[openai_api_key]" autocomplete="new-password" placeholder="Để trống để giữ key" <?php disabled( 'wp-config' === $config['providers']['openai']['key_source'] ); ?>></label>
 						<label><span><?php echo esc_html__( 'OpenRouter API key', 'nt-tao-anh-noi-dung-wordpress' ); ?></span><input type="password" name="generation_settings[openrouter_api_key]" autocomplete="new-password" placeholder="Để trống để giữ key" <?php disabled( 'wp-config' === $config['providers']['openrouter']['key_source'] ); ?>></label>
 						<label><span><?php echo esc_html__( 'OpenAI model', 'nt-tao-anh-noi-dung-wordpress' ); ?></span><select name="generation_settings[openai_model]"><option value="gpt-image-1-mini" <?php selected( $config['openai_model'], 'gpt-image-1-mini' ); ?>>gpt-image-1-mini</option><option value="gpt-image-1" <?php selected( $config['openai_model'], 'gpt-image-1' ); ?>>gpt-image-1</option></select></label>
 						<label><span><?php echo esc_html__( 'OpenRouter image model', 'nt-tao-anh-noi-dung-wordpress' ); ?></span><input id="ntci-openrouter-model" list="ntci-openrouter-models" type="text" name="generation_settings[openrouter_model]" value="<?php echo esc_attr( (string) $config['openrouter_model'] ); ?>" placeholder="provider/model"><datalist id="ntci-openrouter-models"></datalist><small><?php echo esc_html__( 'Khi có API key, plugin sẽ tải danh sách model ảnh từ OpenRouter.', 'nt-tao-anh-noi-dung-wordpress' ); ?></small></label>
 						<label><span><?php echo esc_html__( 'Chất lượng OpenAI', 'nt-tao-anh-noi-dung-wordpress' ); ?></span><select name="generation_settings[quality]"><?php foreach ( array( 'low', 'medium', 'high', 'auto' ) as $quality ) : ?><option value="<?php echo esc_attr( $quality ); ?>" <?php selected( $config['quality'], $quality ); ?>><?php echo esc_html( $quality ); ?></option><?php endforeach; ?></select></label>
+						<label><span><?php echo esc_html__( 'Giới hạn Cloudflare/ngày', 'nt-tao-anh-noi-dung-wordpress' ); ?></span><input type="number" min="1" max="500" name="generation_settings[cloudflare_daily_limit]" value="<?php echo esc_attr( (string) $config['cloudflare_daily_limit'] ); ?>"></label>
 						<label><span><?php echo esc_html__( 'Timeout giây', 'nt-tao-anh-noi-dung-wordpress' ); ?></span><input type="number" min="60" max="300" name="generation_settings[timeout]" value="<?php echo esc_attr( (string) $config['timeout'] ); ?>"></label>
 					</div>
-					<?php if ( 'database' === $config['providers']['openai']['key_source'] ) : ?><label><input type="checkbox" name="generation_settings[clear_openai_api_key]" value="1"> <?php echo esc_html__( 'Xóa OpenAI key trong database', 'nt-tao-anh-noi-dung-wordpress' ); ?></label><?php endif; ?>
+					<?php if ( 'database' === $config['providers']['cloudflare']['key_source'] ) : ?><label><input type="checkbox" name="generation_settings[clear_cloudflare_api_key]" value="1"> <?php echo esc_html__( 'Xóa Cloudflare token trong database', 'nt-tao-anh-noi-dung-wordpress' ); ?></label><br><?php endif; ?>
+					<?php if ( 'database' === $config['providers']['fal']['key_source'] ) : ?><label><input type="checkbox" name="generation_settings[clear_fal_api_key]" value="1"> <?php echo esc_html__( 'Xóa fal.ai key trong database', 'nt-tao-anh-noi-dung-wordpress' ); ?></label><br><?php endif; ?>
+					<?php if ( 'database' === $config['providers']['openai']['key_source'] ) : ?><label><input type="checkbox" name="generation_settings[clear_openai_api_key]" value="1"> <?php echo esc_html__( 'Xóa OpenAI key trong database', 'nt-tao-anh-noi-dung-wordpress' ); ?></label><br><?php endif; ?>
 					<?php if ( 'database' === $config['providers']['openrouter']['key_source'] ) : ?><label><input type="checkbox" name="generation_settings[clear_openrouter_api_key]" value="1"> <?php echo esc_html__( 'Xóa OpenRouter key trong database', 'nt-tao-anh-noi-dung-wordpress' ); ?></label><?php endif; ?>
-					<p class="description"><?php echo esc_html__( 'Production nên dùng NT_CONTENT_IMAGES_OPENAI_API_KEY hoặc NT_CONTENT_IMAGES_OPENROUTER_API_KEY trong wp-config.php.', 'nt-tao-anh-noi-dung-wordpress' ); ?></p>
+					<p class="description"><?php echo esc_html__( 'Production nên dùng credential constants trong wp-config.php. fal.ai hiện polling trong request quản trị; chưa dùng cho batch lớn.', 'nt-tao-anh-noi-dung-wordpress' ); ?></p>
 					<?php submit_button( __( 'Lưu cấu hình tạo ảnh', 'nt-tao-anh-noi-dung-wordpress' ) ); ?>
 				</form>
 			</section>
 
 			<section class="ntci-generation-panel">
 				<h2><?php echo esc_html__( 'Kết nối tài khoản Canva', 'nt-tao-anh-noi-dung-wordpress' ); ?></h2>
-				<p><?php echo esc_html__( 'Canva Connect dùng OAuth 2.0 PKCE. Plugin có thể tải ảnh đã tạo lên Canva, tạo thiết kế 1280×720 để chỉnh sửa và nhập bản xuất PNG trở lại WordPress.', 'nt-tao-anh-noi-dung-wordpress' ); ?></p>
+				<p><?php echo esc_html__( 'Canva Connect dùng OAuth 2.0 PKCE. Plugin có thể tải ảnh đã tạo hoặc ảnh kho lên Canva, tạo thiết kế 1280×720 và nhập bản PNG trở lại WordPress.', 'nt-tao-anh-noi-dung-wordpress' ); ?></p>
 				<p><strong><?php echo esc_html__( 'Trạng thái:', 'nt-tao-anh-noi-dung-wordpress' ); ?></strong> <?php echo esc_html( $canva['connected'] ? __( 'Đã kết nối', 'nt-tao-anh-noi-dung-wordpress' ) : __( 'Chưa kết nối', 'nt-tao-anh-noi-dung-wordpress' ) ); ?> — <code><?php echo esc_html( (string) $canva['credential_source'] ); ?></code></p>
 				<p><strong><?php echo esc_html__( 'Redirect URI cần đăng ký trong Canva Developer Portal:', 'nt-tao-anh-noi-dung-wordpress' ); ?></strong><br><code class="ntci-long-code"><?php echo esc_html( (string) $canva['redirect_uri'] ); ?></code></p>
 				<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
@@ -171,7 +182,7 @@ final class NT_Content_Images_Generation_Admin {
 				<div class="ntci-generation-table-wrap"><table class="widefat striped"><thead><tr><th><?php echo esc_html__( 'Nội dung', 'nt-tao-anh-noi-dung-wordpress' ); ?></th><th><?php echo esc_html__( 'Loại', 'nt-tao-anh-noi-dung-wordpress' ); ?></th><th><?php echo esc_html__( 'Số từ', 'nt-tao-anh-noi-dung-wordpress' ); ?></th><th><?php echo esc_html__( 'Ưu tiên', 'nt-tao-anh-noi-dung-wordpress' ); ?></th><th><?php echo esc_html__( 'Thao tác', 'nt-tao-anh-noi-dung-wordpress' ); ?></th></tr></thead><tbody id="ntci-generation-candidates"><tr><td colspan="5"><?php echo esc_html__( 'Đang tải…', 'nt-tao-anh-noi-dung-wordpress' ); ?></td></tr></tbody></table></div>
 			</section>
 
-			<section class="ntci-generation-panel"><h2><?php echo esc_html__( 'Ảnh đã tạo', 'nt-tao-anh-noi-dung-wordpress' ); ?></h2><div class="ntci-generation-gallery" id="ntci-generation-gallery"></div></section>
+			<section class="ntci-generation-panel"><h2><?php echo esc_html__( 'Ảnh đã tạo hoặc nhập', 'nt-tao-anh-noi-dung-wordpress' ); ?></h2><div class="ntci-generation-gallery" id="ntci-generation-gallery"></div></section>
 		</div>
 		<?php
 	}

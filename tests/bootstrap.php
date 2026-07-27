@@ -7,6 +7,8 @@ declare(strict_types=1);
 
 define( 'ABSPATH', __DIR__ . '/' );
 define( 'MINUTE_IN_SECONDS', 60 );
+define( 'HOUR_IN_SECONDS', 3600 );
+define( 'DAY_IN_SECONDS', 86400 );
 define( 'WP_DEBUG_LOG', false );
 
 $GLOBALS['ntci_test_options'] = array();
@@ -46,7 +48,24 @@ function do_action( string $hook, ...$args ): void { $GLOBALS['ntci_test_actions
 function home_url( string $path = '' ): string { return 'https://example.test' . $path; }
 function admin_url( string $path = '' ): string { return 'https://example.test/wp-admin/' . ltrim( $path, '/' ); }
 function get_bloginfo( string $show = '' ): string { return 'NT Test'; }
-function add_query_arg( array $args, string $url ): string { return $url . ( str_contains( $url, '?' ) ? '&' : '?' ) . http_build_query( $args ); }
+function wp_rand( int $min = 0, int $max = 0 ): int { return $max > $min ? $min : 1; }
+function wp_parse_url( string $url ) { return parse_url( $url ); }
+function wp_http_validate_url( string $url ): string|false {
+	$parts = parse_url( $url );
+	return is_array( $parts ) && 'https' === strtolower( (string) ( $parts['scheme'] ?? '' ) ) && ! empty( $parts['host'] ) ? $url : false;
+}
+function remove_accents( string $value ): string { return $value; }
+function wp_strip_all_tags( string $value ): string { return strip_tags( $value ); }
+function add_query_arg( $key, $value = null, $url = null ): string {
+	if ( is_array( $key ) ) {
+		$args = $key;
+		$target = (string) $value;
+	} else {
+		$args = array( (string) $key => $value );
+		$target = (string) $url;
+	}
+	return $target . ( str_contains( $target, '?' ) ? '&' : '?' ) . http_build_query( $args );
+}
 
 function get_option( string $name, $default = false ) {
 	return array_key_exists( $name, $GLOBALS['ntci_test_options'] ) ? $GLOBALS['ntci_test_options'][ $name ] : $default;
@@ -95,14 +114,32 @@ function wp_remote_request( string $url, array $args = array() ) {
 function wp_safe_remote_get( string $url, array $args = array() ) { return wp_remote_get( $url, $args ); }
 function wp_remote_retrieve_response_code( $response ): int { return is_array( $response ) ? (int) ( $response['response']['code'] ?? 0 ) : 0; }
 function wp_remote_retrieve_body( $response ): string { return is_array( $response ) ? (string) ( $response['body'] ?? '' ) : ''; }
+function wp_remote_retrieve_header( $response, string $header ): string {
+	$headers = is_array( $response ) && is_array( $response['headers'] ?? null ) ? $response['headers'] : array();
+	foreach ( $headers as $key => $value ) {
+		if ( strtolower( (string) $key ) === strtolower( $header ) ) {
+			return (string) $value;
+		}
+	}
+	return '';
+}
 
 require_once dirname( __DIR__ ) . '/includes/security/class-nt-content-images-secret-redactor.php';
 require_once dirname( __DIR__ ) . '/includes/logging/class-nt-content-images-safe-logger.php';
 require_once dirname( __DIR__ ) . '/includes/generation/class-nt-content-images-generation-settings.php';
 require_once dirname( __DIR__ ) . '/includes/generation/class-nt-content-images-generation-lock.php';
+require_once dirname( __DIR__ ) . '/includes/sources/class-nt-content-images-source-settings.php';
+require_once dirname( __DIR__ ) . '/includes/sources/interface-nt-content-images-stock-provider.php';
+require_once dirname( __DIR__ ) . '/includes/sources/class-nt-content-images-stock-provider-manager.php';
+require_once dirname( __DIR__ ) . '/includes/sources/class-nt-content-images-stock-query-builder.php';
+require_once dirname( __DIR__ ) . '/includes/sources/class-nt-content-images-remote-image-downloader.php';
+require_once dirname( __DIR__ ) . '/includes/sources/providers/class-nt-content-images-pexels-stock-provider.php';
+require_once dirname( __DIR__ ) . '/includes/sources/providers/class-nt-content-images-openverse-stock-provider.php';
 require_once dirname( __DIR__ ) . '/includes/providers/interface-nt-content-images-image-provider.php';
 require_once dirname( __DIR__ ) . '/includes/providers/class-nt-content-images-openai-image-provider.php';
 require_once dirname( __DIR__ ) . '/includes/providers/class-nt-content-images-openrouter-image-provider.php';
+require_once dirname( __DIR__ ) . '/includes/providers/class-nt-content-images-cloudflare-image-provider.php';
+require_once dirname( __DIR__ ) . '/includes/providers/class-nt-content-images-fal-image-provider.php';
 require_once dirname( __DIR__ ) . '/includes/providers/class-nt-content-images-image-provider-manager.php';
 require_once dirname( __DIR__ ) . '/includes/canva/class-nt-content-images-canva-settings.php';
 require_once dirname( __DIR__ ) . '/includes/canva/class-nt-content-images-canva-oauth.php';

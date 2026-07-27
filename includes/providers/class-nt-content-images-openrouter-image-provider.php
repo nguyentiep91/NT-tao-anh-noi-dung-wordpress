@@ -12,6 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 final class NT_Content_Images_OpenRouter_Image_Provider implements NT_Content_Images_Image_Provider_Interface {
 	private const ENDPOINT = 'https://openrouter.ai/api/v1/images';
 	private const MODELS_ENDPOINT = 'https://openrouter.ai/api/v1/images/models';
+	private const MODELS_FALLBACK_ENDPOINT = 'https://openrouter.ai/api/v1/models?output_modalities=image';
 	private const MAX_IMAGE_BYTES = 25165824;
 
 	private NT_Content_Images_Generation_Settings $settings;
@@ -38,30 +39,26 @@ final class NT_Content_Images_OpenRouter_Image_Provider implements NT_Content_Im
 		if ( '' === $key ) {
 			return new WP_Error( 'ntci_openrouter_key_missing', __( 'Chưa cấu hình OpenRouter API key.', 'nt-tao-anh-noi-dung-wordpress' ) );
 		}
+
 		$cache_key = 'ntci_or_models_' . substr( hash( 'sha256', $key ), 0, 16 );
 		$cached = get_transient( $cache_key );
-		if ( is_array( $cached ) ) {
+		if ( is_array( $cached ) && ! empty( $cached ) ) {
 			return $cached;
 		}
-		$response = wp_remote_get(
-			self::MODELS_ENDPOINT,
-			array(
-				'timeout' => 30,
-				'headers' => $this->headers( $key ),
-			)
-		);
-		if ( is_wp_error( $response ) ) {
-			return new WP_Error( 'ntci_openrouter_models_transport', NT_Content_Images_Secret_Redactor::redact_message( $response->get_error_message() ) );
+
+		$result = $this->request_model_list( self::MODELS_ENDPOINT, $key );
+		if ( is_wp_error( $result ) ) {
+			$fallback = $this->request_model_list( self::MODELS_FALLBACK_ENDPOINT, $key );
+			if ( is_wp_error( $fallback ) ) {
+				return $result;
+			}
+			$result = $fallback;
 		}
-		$status = wp_remote_retrieve_response_code( $response );
-		$data = json_decode( wp_remote_retrieve_body( $response ), true );
-		if ( 200 !== $status || ! is_array( $data['data'] ?? null ) ) {
-			return new WP_Error( 'ntci_openrouter_models_failed', __( 'Không thể tải danh sách model ảnh từ OpenRouter.', 'nt-tao-anh-noi-dung-wordpress' ), array( 'status' => $status ) );
-		}
+
 		$models = array();
-		foreach ( $data['data'] as $item ) {
+		foreach ( $result as $item ) {
 			$id = sanitize_text_field( (string) ( $item['id'] ?? '' ) );
-			if ( '' === $id ) {
+			if ( '' === $id || ! preg_match( '/^[A-Za-z0-9._:-]+\/[A-Za-z0-9._:-]+$/', $id ) ) {
 				continue;
 			}
 			$models[] = array(
@@ -69,6 +66,16 @@ final class NT_Content_Images_OpenRouter_Image_Provider implements NT_Content_Im
 				'name' => sanitize_text_field( (string) ( $item['name'] ?? $id ) ),
 			);
 		}
+
+		usort(
+			$models,
+			static fn ( array $left, array $right ): int => strcasecmp( (string) $left['name'], (string) $right['name'] )
+		);
+
+		if ( empty( $models ) ) {
+			return new WP_Error( 'ntci_openrouter_models_empty', __( 'OpenRouter không trả về model tạo ảnh khả dụng cho API key này.', 'nt-tao-anh-noi-dung-wordpress' ) );
+		}
+
 		set_transient( $cache_key, $models, 15 * MINUTE_IN_SECONDS );
 		return $models;
 	}
@@ -92,8 +99,11 @@ final class NT_Content_Images_OpenRouter_Image_Provider implements NT_Content_Im
 		$body = apply_filters(
 			'nt_content_images_openrouter_image_request',
 			array(
-				'model'  => $model,
-				'prompt' => $prompt,
+				'model'         => $model,
+				'prompt'        => $prompt,
+				'n'             => 1,
+				'aspect_ratio'  => '16:9',
+				'output_format' => 'webp',
 			),
 			$request
 		);
@@ -146,6 +156,35 @@ final class NT_Content_Images_OpenRouter_Image_Provider implements NT_Content_Im
 			'usage'          => is_array( $data['usage'] ?? null ) ? NT_Content_Images_Secret_Redactor::redact( $data['usage'] ) : array(),
 			'created'        => absint( $data['created'] ?? time() ),
 		);
+	}
+
+	/** @return array<int, array<string, mixed>>|WP_Error */
+	private function request_model_list( string $endpoint, string $key ) {
+		$response = wp_remote_get(
+			$endpoint,
+			array(
+				'timeout'     => 30,
+				'redirection' => 0,
+				'headers'     => $this->headers( $key ),
+			)
+		);
+		if ( is_wp_error( $response ) ) {
+			return new WP_Error( 'ntci_openrouter_models_transport', NT_Content_Images_Secret_Redactor::redact_message( $response->get_error_message() ) );
+		}
+
+		$status = wp_remote_retrieve_response_code( $response );
+		$data = json_decode( wp_remote_retrieve_body( $response ), true );
+		if ( 200 !== $status || ! is_array( $data['data'] ?? null ) ) {
+			$message = is_array( $data ) ? (string) ( $data['error']['message'] ?? $data['message'] ?? '' ) : '';
+			$message = NT_Content_Images_Secret_Redactor::redact_message( $message );
+			return new WP_Error(
+				'ntci_openrouter_models_failed',
+				'' !== $message ? $message : __( 'Không thể tải danh sách model ảnh từ OpenRouter.', 'nt-tao-anh-noi-dung-wordpress' ),
+				array( 'status' => $status )
+			);
+		}
+
+		return $data['data'];
 	}
 
 	/** @return array<string, string> */
