@@ -197,6 +197,7 @@ final class NT_Content_Images_Generation_Admin {
 						<label><span><?php echo esc_html__( 'Giới hạn Cloudflare/ngày', 'nt-tao-anh-noi-dung-wordpress' ); ?></span><input type="number" min="1" max="500" name="generation_settings[cloudflare_daily_limit]" value="<?php echo esc_attr( (string) $config['cloudflare_daily_limit'] ); ?>"></label>
 						<label><span><?php echo esc_html__( 'Giới hạn tổng ảnh AI/ngày', 'nt-tao-anh-noi-dung-wordpress' ); ?></span><input type="number" min="1" max="1000" name="generation_settings[daily_limit]" value="<?php echo esc_attr( (string) $config['daily_limit'] ); ?>"><small><?php echo esc_html( sprintf( /* translators: %d: images generated today. */ __( 'Hôm nay đã tạo %d ảnh. Áp dụng cho mọi provider, gồm cả chạy hàng loạt.', 'nt-tao-anh-noi-dung-wordpress' ), NT_Content_Images_Usage_Tracker::get_today()['total'] ) ); ?></small></label>
 						<label><span><?php echo esc_html__( 'Timeout giây', 'nt-tao-anh-noi-dung-wordpress' ); ?></span><input type="number" min="60" max="300" name="generation_settings[timeout]" value="<?php echo esc_attr( (string) $config['timeout'] ); ?>"></label>
+						<label><span><?php echo esc_html__( 'Model soạn alt/caption', 'nt-tao-anh-noi-dung-wordpress' ); ?></span><input type="text" name="generation_settings[caption_model]" value="<?php echo esc_attr( (string) $config['caption_model'] ); ?>" placeholder="google/gemini-2.5-flash-lite"><small><?php echo esc_html__( 'Model văn bản giá rẻ trên OpenRouter, dùng chung API key OpenRouter.', 'nt-tao-anh-noi-dung-wordpress' ); ?></small></label>
 					</div>
 					<?php if ( 'database' === $config['providers']['cloudflare']['key_source'] ) : ?><label><input type="checkbox" name="generation_settings[clear_cloudflare_api_key]" value="1"> <?php echo esc_html__( 'Xóa Cloudflare token trong database', 'nt-tao-anh-noi-dung-wordpress' ); ?></label><br><?php endif; ?>
 					<?php if ( 'database' === $config['providers']['fal']['key_source'] ) : ?><label><input type="checkbox" name="generation_settings[clear_fal_api_key]" value="1"> <?php echo esc_html__( 'Xóa fal.ai key trong database', 'nt-tao-anh-noi-dung-wordpress' ); ?></label><br><?php endif; ?>
@@ -205,6 +206,10 @@ final class NT_Content_Images_Generation_Admin {
 					<p style="margin-top:12px;">
 						<input type="hidden" name="generation_settings[auto_cleanup]" value="0">
 						<label><input type="checkbox" name="generation_settings[auto_cleanup]" value="1" <?php checked( ! empty( $config['auto_cleanup'] ) ); ?>> <strong><?php echo esc_html__( 'Tự động dọn ảnh trung gian không dùng', 'nt-tao-anh-noi-dung-wordpress' ); ?></strong> — <?php echo esc_html__( 'xoá ảnh nền gốc sau khi đã chèn chữ, ảnh bị từ chối và ảnh thừa sau khi chèn/duyệt. Media Library chỉ giữ ảnh thật sự dùng.', 'nt-tao-anh-noi-dung-wordpress' ); ?></label>
+					</p>
+					<p>
+						<input type="hidden" name="generation_settings[ai_captions]" value="0">
+						<label><input type="checkbox" name="generation_settings[ai_captions]" value="1" <?php checked( ! empty( $config['ai_captions'] ) ); ?>> <strong><?php echo esc_html__( 'Dùng AI soạn alt text & caption', 'nt-tao-anh-noi-dung-wordpress' ); ?></strong> — <?php echo esc_html__( 'mô tả ảnh tự nhiên, chuẩn SEO bằng model văn bản giá rẻ qua OpenRouter (không tính vào giới hạn ảnh/ngày). Khi lỗi tự dùng mẫu mặc định.', 'nt-tao-anh-noi-dung-wordpress' ); ?></label>
 					</p>
 					<p class="description"><?php echo esc_html__( 'Production nên dùng credential constants trong wp-config.php. fal.ai hiện polling trong request quản trị; chưa dùng cho batch lớn.', 'nt-tao-anh-noi-dung-wordpress' ); ?></p>
 					<?php submit_button( __( 'Lưu cấu hình tạo ảnh', 'nt-tao-anh-noi-dung-wordpress' ) ); ?>

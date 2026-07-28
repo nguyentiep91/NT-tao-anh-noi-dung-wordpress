@@ -3,7 +3,7 @@
  * Plugin Name:       NT – Tạo ảnh cho nội dung WordPress
  * Plugin URI:        https://nguyentiep.vn
  * Description:       Phân tích nội dung, tìm ảnh miễn phí, tạo ảnh qua Cloudflare/fal.ai/OpenAI/OpenRouter, chèn chữ theo mẫu, tạo và chèn ảnh minh hoạ vào bài viết, chỉnh sửa bằng Canva và duyệt an toàn.
- * Version:           0.13.0
+ * Version:           0.14.0
  * Author:            Nguyễn Tiệp
  * Author URI:        https://nguyentiep.vn
  * Text Domain:       nt-tao-anh-noi-dung-wordpress
@@ -16,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'NT_CONTENT_IMAGES_VERSION', '0.13.0' );
+define( 'NT_CONTENT_IMAGES_VERSION', '0.14.0' );
 define( 'NT_CONTENT_IMAGES_DB_VERSION', '1.4.0' );
 define( 'NT_CONTENT_IMAGES_FILE', __FILE__ );
 define( 'NT_CONTENT_IMAGES_PATH', plugin_dir_path( __FILE__ ) );
@@ -64,6 +64,7 @@ require_once NT_CONTENT_IMAGES_PATH . 'includes/brief/class-nt-content-images-br
 require_once NT_CONTENT_IMAGES_PATH . 'includes/brief/class-nt-content-images-brief-rest-controller.php';
 require_once NT_CONTENT_IMAGES_PATH . 'includes/generation/class-nt-content-images-generation-settings.php';
 require_once NT_CONTENT_IMAGES_PATH . 'includes/generation/class-nt-content-images-usage-tracker.php';
+require_once NT_CONTENT_IMAGES_PATH . 'includes/generation/class-nt-content-images-caption-writer.php';
 require_once NT_CONTENT_IMAGES_PATH . 'includes/generation/class-nt-content-images-generation-migrator.php';
 require_once NT_CONTENT_IMAGES_PATH . 'includes/generation/class-nt-content-images-generation-repository.php';
 require_once NT_CONTENT_IMAGES_PATH . 'includes/generation/class-nt-content-images-generation-lock.php';

@@ -98,6 +98,7 @@ Mục tiêu: repository có cấu trúc rõ ràng, plugin kích hoạt an toàn 
 - [x] Resize/crop về kích thước đích khi lưu.
 - [x] WebP và nén ảnh (0.11.0).
 - [x] SEO filename, alt text và caption (0.10.0).
+- [x] AI soạn alt text & caption tự nhiên bằng model văn bản OpenRouter, có retry và fallback mẫu (0.14.0).
 - [x] Upload attachment và kiểm tra ảnh trùng bằng hash (0.12.0).
 - [x] Tự dọn ảnh trung gian không dùng: bản gốc sau chèn chữ, ảnh bị từ chối, ứng viên thừa sau chèn/duyệt (0.12.0).
 - [x] Nút "Dọn ảnh không dùng" quét toàn bộ Media Library, chỉ giữ ảnh đang dùng (0.12.0).

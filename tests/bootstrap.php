@@ -129,6 +129,7 @@ require_once dirname( __DIR__ ) . '/includes/security/class-nt-content-images-se
 require_once dirname( __DIR__ ) . '/includes/logging/class-nt-content-images-safe-logger.php';
 require_once dirname( __DIR__ ) . '/includes/generation/class-nt-content-images-generation-settings.php';
 require_once dirname( __DIR__ ) . '/includes/generation/class-nt-content-images-usage-tracker.php';
+require_once dirname( __DIR__ ) . '/includes/generation/class-nt-content-images-caption-writer.php';
 require_once dirname( __DIR__ ) . '/includes/generation/class-nt-content-images-generation-lock.php';
 require_once dirname( __DIR__ ) . '/includes/sources/class-nt-content-images-source-settings.php';
 require_once dirname( __DIR__ ) . '/includes/sources/interface-nt-content-images-stock-provider.php';

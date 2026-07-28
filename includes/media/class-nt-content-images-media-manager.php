@@ -15,7 +15,7 @@ final class NT_Content_Images_Media_Manager {
 	 * @param array<string, mixed> $settings Generation settings.
 	 * @return array<string, mixed>|WP_Error
 	 */
-	public function store_featured_candidate( int $post_id, array $image, string $prompt, array $settings ) {
+	public function store_featured_candidate( int $post_id, array $image, string $prompt, array $settings, array $meta = array() ) {
 		return $this->store_candidate(
 			$post_id,
 			$image,
@@ -24,7 +24,9 @@ final class NT_Content_Images_Media_Manager {
 				'source_kind' => 'ai',
 				'provider'    => sanitize_key( (string) ( $image['provider'] ?? 'ai' ) ),
 				'prompt_hash' => hash( 'sha256', $prompt ),
-				'caption'     => __( 'Ảnh được tạo tự động từ nội dung bài viết và đang chờ duyệt.', 'nt-tao-anh-noi-dung-wordpress' ),
+				'alt_text'    => sanitize_text_field( (string) ( $meta['alt_text'] ?? '' ) ),
+				'caption'     => sanitize_text_field( (string) ( $meta['caption'] ?? '' ) ) ?: __( 'Ảnh được tạo tự động từ nội dung bài viết và đang chờ duyệt.', 'nt-tao-anh-noi-dung-wordpress' ),
+				'title'       => sanitize_text_field( (string) ( $meta['title'] ?? '' ) ),
 			)
 		);
 	}

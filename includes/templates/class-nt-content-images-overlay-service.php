@@ -108,23 +108,26 @@ final class NT_Content_Images_Overlay_Service {
 			'bytes'    => $prepared['rendered']['bytes'],
 			'provider' => 'template',
 		);
+		// Bản chèn chữ kế thừa alt/caption/title từ ảnh gốc (nơi AI đã soạn); thiếu thì rơi về mẫu theo heading.
+		$source_att = absint( $item['attachment_id'] );
+		$placement  = is_array( $item['settings']['placement'] ?? null ) ? $item['settings']['placement'] : array();
+		$heading    = trim( (string) ( $placement['heading_text'] ?? '' ) );
+		$topic      = (string) get_the_title( absint( $item['post_id'] ) );
+		$meta       = array(
+			'alt_text' => (string) get_post_meta( $source_att, '_wp_attachment_image_alt', true ),
+			'caption'  => (string) get_post_field( 'post_excerpt', $source_att ),
+			'title'    => (string) get_the_title( $source_att ),
+		);
+		if ( '' === trim( $meta['alt_text'] ) ) {
+			$meta['alt_text'] = '' !== $heading ? $heading . ' — ' . $topic : $topic;
+		}
+		if ( '' === trim( $meta['caption'] ) && $is_content ) {
+			$meta['caption'] = '' !== $heading ? sprintf( __( 'Minh họa cho phần "%s"', 'nt-tao-anh-noi-dung-wordpress' ), $heading ) : sprintf( __( 'Minh họa chủ đề: %s', 'nt-tao-anh-noi-dung-wordpress' ), $topic );
+		}
 		if ( $is_content ) {
-			$placement = is_array( $item['settings']['placement'] ?? null ) ? $item['settings']['placement'] : array();
-			$heading   = trim( (string) ( $placement['heading_text'] ?? '' ) );
-			$topic     = (string) get_the_title( absint( $item['post_id'] ) );
-			$stored    = $this->media->store_content_candidate(
-				absint( $item['post_id'] ),
-				$image,
-				(string) $item['prompt'],
-				$config,
-				array(
-					'alt_text' => '' !== $heading ? $heading . ' — ' . $topic : $topic,
-					'caption'  => '' !== $heading ? sprintf( __( 'Minh họa cho phần "%s"', 'nt-tao-anh-noi-dung-wordpress' ), $heading ) : sprintf( __( 'Minh họa chủ đề: %s', 'nt-tao-anh-noi-dung-wordpress' ), $topic ),
-					'title'    => '' !== $heading ? $heading . ' — ' . $topic : $topic,
-				)
-			);
+			$stored = $this->media->store_content_candidate( absint( $item['post_id'] ), $image, (string) $item['prompt'], $config, $meta );
 		} else {
-			$stored = $this->media->store_featured_candidate( absint( $item['post_id'] ), $image, (string) $item['prompt'], $config );
+			$stored = $this->media->store_featured_candidate( absint( $item['post_id'] ), $image, (string) $item['prompt'], $config, $meta );
 		}
 		if ( is_wp_error( $stored ) ) {
 			return $stored;

@@ -20,6 +20,7 @@ final class NT_Content_Images_Featured_Image_Generator {
 	private NT_Content_Images_Profile_Repository $profiles;
 	private NT_Content_Images_Generation_Lock $lock;
 	private NT_Content_Images_Safe_Logger $logger;
+	private NT_Content_Images_Caption_Writer $captions;
 
 	public function __construct(
 		NT_Content_Images_Brief_Generator $brief_generator,
@@ -31,7 +32,8 @@ final class NT_Content_Images_Featured_Image_Generator {
 		NT_Content_Images_Generation_Settings $settings,
 		NT_Content_Images_Profile_Repository $profiles,
 		?NT_Content_Images_Generation_Lock $lock = null,
-		?NT_Content_Images_Safe_Logger $logger = null
+		?NT_Content_Images_Safe_Logger $logger = null,
+		?NT_Content_Images_Caption_Writer $captions = null
 	) {
 		$this->brief_generator = $brief_generator;
 		$this->briefs          = $briefs;
@@ -43,6 +45,7 @@ final class NT_Content_Images_Featured_Image_Generator {
 		$this->profiles        = $profiles;
 		$this->lock            = $lock ?? new NT_Content_Images_Generation_Lock();
 		$this->logger          = $logger ?? new NT_Content_Images_Safe_Logger();
+		$this->captions        = $captions ?? new NT_Content_Images_Caption_Writer( $settings, $this->logger );
 	}
 
 	/** @return array<string, mixed>|WP_Error */
@@ -157,7 +160,14 @@ final class NT_Content_Images_Featured_Image_Generator {
 		}
 
 		NT_Content_Images_Usage_Tracker::increment( $provider->get_id() );
-		$stored = $this->media->store_featured_candidate( $post_id, $response, $prompt, $config );
+		// AI soạn alt/caption tự nhiên; lỗi thì dùng mặc định của Media Manager.
+		$meta = $this->captions->write(
+			array(
+				'post_title' => (string) get_the_title( $post_id ),
+				'scene'      => $prompt,
+			)
+		) ?? array();
+		$stored = $this->media->store_featured_candidate( $post_id, $response, $prompt, $config, $meta );
 		if ( is_wp_error( $stored ) ) {
 			$this->logger->log(
 				'error',
