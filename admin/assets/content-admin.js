@@ -241,7 +241,14 @@
 		queueSummary.textContent = ( statusLabels[ job.status ] || job.status ) + ': ' + job.done_posts + '/' + job.total_posts + ' bài · ' + job.images + ' ảnh đã tạo · ' + job.errors + ' lỗi' + note;
 		queueItems.innerHTML = ( job.items || [] ).map( function ( item ) {
 			const error = item.error ? ' <em>' + escapeHtml( item.error ) + '</em>' : '';
-			return '<li><code>#' + Number( item.post_id ) + '</code> ' + escapeHtml( item.title ) + ' — đại diện ' + taskLabel( item.featured ) + ' · trong bài ' + taskLabel( item.content ) + ' · ' + Number( item.images ) + ' ảnh' + error + '</li>';
+			let insertInfo = '';
+			if ( item.insert && item.insert !== 'n/a' ) {
+				insertInfo = ' · chèn vào bài ' + taskLabel( item.insert );
+				if ( item.insert === 'done' ) {
+					insertInfo += ' (' + Number( item.inserted || 0 ) + ' ảnh)';
+				}
+			}
+			return '<li><code>#' + Number( item.post_id ) + '</code> ' + escapeHtml( item.title ) + ' — đại diện ' + taskLabel( item.featured ) + ' · trong bài ' + taskLabel( item.content ) + insertInfo + ' · ' + Number( item.images ) + ' ảnh' + error + '</li>';
 		} ).join( '' );
 	}
 
@@ -266,7 +273,14 @@
 				renderQueue( data );
 				if ( ! data.job || data.job.status !== 'running' ) {
 					if ( data.job && data.job.status === 'completed' ) {
-						setFeedback( 'Đợt chạy hàng loạt đã hoàn thành: ' + data.job.images + ' ảnh. Hãy duyệt trong từng bài hoặc trang Ảnh AI & Canva.', 'success' );
+						let doneMessage = 'Đợt chạy hàng loạt đã hoàn thành: ' + data.job.images + ' ảnh.';
+						if ( data.job.auto_insert ) {
+							const insertedPosts = ( data.job.items || [] ).filter( function ( item ) { return item.insert === 'done'; } ).length;
+							doneMessage += ' Đã tự chèn ảnh vào ' + insertedPosts + ' bài theo kế hoạch (mỗi bài có thể hoàn tác riêng).';
+						} else {
+							doneMessage += ' Hãy duyệt trong từng bài hoặc trang Ảnh AI & Canva.';
+						}
+						setFeedback( doneMessage, 'success' );
 						loadCandidates();
 					}
 					break;
@@ -292,13 +306,15 @@
 
 	if ( queueStart ) {
 		queueStart.addEventListener( 'click', async function () {
-			if ( ! window.confirm( config.labels.confirmQueue ) ) {
+			const autoInsert = !! ( document.querySelector( '#ntci-queue-autoinsert' ) || {} ).checked;
+			if ( ! window.confirm( autoInsert ? config.labels.confirmQueueAutoInsert : config.labels.confirmQueue ) ) {
 				return;
 			}
 			try {
 				const data = await request( '/queue/start', 'POST', {
 					include_featured: document.querySelector( '#ntci-queue-featured' ).checked,
 					include_content: document.querySelector( '#ntci-queue-content' ).checked,
+					auto_insert: autoInsert,
 					limit: Number( document.querySelector( '#ntci-queue-limit' ).value || 10 )
 				} );
 				renderQueue( data );

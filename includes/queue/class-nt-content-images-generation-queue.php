@@ -23,19 +23,25 @@ final class NT_Content_Images_Generation_Queue {
 	private NT_Content_Images_Audit_Repository $audits;
 	private NT_Content_Images_Profile_Repository $profiles;
 	private NT_Content_Images_Generation_Settings $settings;
+	private NT_Content_Images_Generation_Repository $repository;
+	private NT_Content_Images_Content_Inserter $inserter;
 
 	public function __construct(
 		NT_Content_Images_Featured_Image_Generator $featured,
 		NT_Content_Images_Content_Image_Generator $content,
 		NT_Content_Images_Audit_Repository $audits,
 		NT_Content_Images_Profile_Repository $profiles,
-		NT_Content_Images_Generation_Settings $settings
+		NT_Content_Images_Generation_Settings $settings,
+		NT_Content_Images_Generation_Repository $repository,
+		NT_Content_Images_Content_Inserter $inserter
 	) {
-		$this->featured = $featured;
-		$this->content  = $content;
-		$this->audits   = $audits;
-		$this->profiles = $profiles;
-		$this->settings = $settings;
+		$this->featured   = $featured;
+		$this->content    = $content;
+		$this->audits     = $audits;
+		$this->profiles   = $profiles;
+		$this->settings   = $settings;
+		$this->repository = $repository;
+		$this->inserter   = $inserter;
 	}
 
 	/** @return array<string, mixed>|WP_Error */
@@ -46,6 +52,7 @@ final class NT_Content_Images_Generation_Queue {
 		}
 		$include_featured = ! empty( $args['include_featured'] );
 		$include_content  = ! empty( $args['include_content'] );
+		$auto_insert      = ! empty( $args['auto_insert'] );
 		if ( ! $include_featured && ! $include_content ) {
 			return new WP_Error( 'ntci_queue_scope_empty', __( 'Hãy chọn ít nhất một loại ảnh: ảnh đại diện hoặc ảnh trong bài.', 'nt-tao-anh-noi-dung-wordpress' ) );
 		}
@@ -69,6 +76,8 @@ final class NT_Content_Images_Generation_Queue {
 				'title'    => sanitize_text_field( (string) $item['title'] ),
 				'featured' => $needs_featured ? 'pending' : 'n/a',
 				'content'  => $needs_content ? 'pending' : 'n/a',
+				'insert'   => $auto_insert ? 'pending' : 'n/a',
+				'inserted' => 0,
 				'images'   => 0,
 				'error'    => '',
 			);
@@ -83,6 +92,7 @@ final class NT_Content_Images_Generation_Queue {
 			'id'           => uniqid( 'ntciq_', false ),
 			'status'       => 'running',
 			'pause_reason' => '',
+			'auto_insert'  => $auto_insert,
 			'items'        => $items,
 			'images'       => 0,
 			'errors'       => 0,
@@ -112,7 +122,8 @@ final class NT_Content_Images_Generation_Queue {
 		}
 		$done = 0;
 		foreach ( $job['items'] as $item ) {
-			if ( ! in_array( 'pending', array( (string) $item['featured'], (string) $item['content'] ), true ) ) {
+			$states = array( (string) $item['featured'], (string) $item['content'], (string) ( $item['insert'] ?? 'n/a' ) );
+			if ( ! in_array( 'pending', $states, true ) ) {
 				$done++;
 			}
 		}
@@ -121,6 +132,7 @@ final class NT_Content_Images_Generation_Queue {
 				'id'           => (string) $job['id'],
 				'status'       => (string) $job['status'],
 				'pause_reason' => (string) $job['pause_reason'],
+				'auto_insert'  => ! empty( $job['auto_insert'] ),
 				'total_posts'  => count( $job['items'] ),
 				'done_posts'   => $done,
 				'images'       => absint( $job['images'] ),
@@ -155,6 +167,12 @@ final class NT_Content_Images_Generation_Queue {
 				}
 				if ( 'pending' === (string) $item['content'] ) {
 					$this->step_content( $job, $index );
+					$this->save_job( $job );
+					return $this->status();
+				}
+				// Bước cục bộ (không gọi API): duyệt các ảnh vừa tạo và chèn vào bài theo kế hoạch.
+				if ( 'pending' === (string) ( $item['insert'] ?? 'n/a' ) ) {
+					$this->step_insert( $job, $index );
 					$this->save_job( $job );
 					return $this->status();
 				}
@@ -231,6 +249,69 @@ final class NT_Content_Images_Generation_Queue {
 		$generated = count( $result['generated'] );
 		$job['items'][ $index ]['images'] += $generated;
 		$job['images']                    += $generated;
+	}
+
+	/**
+	 * Approves the freshly generated candidates of one post and inserts them.
+	 *
+	 * Per slot chỉ bản mới nhất được duyệt (thường là bản đã chèn chữ); ảnh
+	 * đại diện chỉ được đặt khi bài chưa có thumbnail. Bước này chạy cục bộ,
+	 * không tốn yêu cầu API, và mọi bài đều có snapshot để hoàn tác riêng.
+	 *
+	 * @param array<string, mixed> $job
+	 */
+	private function step_insert( array &$job, int $index ): void {
+		$post_id = absint( $job['items'][ $index ]['post_id'] );
+		$records = $this->repository->get_by_post( $post_id );
+
+		// 1) Đặt ảnh đại diện: bản 'generated' mới nhất không phải ảnh nội dung.
+		if ( ! get_post_thumbnail_id( $post_id ) ) {
+			$featured_candidate = 0;
+			foreach ( $records as $record ) {
+				if ( 'content' === (string) ( $record['settings']['image_type'] ?? '' ) ) {
+					continue;
+				}
+				if ( 'generated' === (string) $record['status'] ) {
+					$featured_candidate = absint( $record['id'] ); // get_by_post trả oldest-first: bản cuối là mới nhất.
+				}
+			}
+			if ( $featured_candidate > 0 ) {
+				$approved = $this->featured->approve( $featured_candidate );
+				if ( is_wp_error( $approved ) ) {
+					$job['items'][ $index ]['error'] = sanitize_text_field( $approved->get_error_message() );
+				}
+			}
+		}
+
+		// 2) Duyệt bản mới nhất của từng vị trí ảnh trong bài.
+		$latest_by_slot = array();
+		foreach ( $records as $record ) {
+			if ( 'content' !== (string) ( $record['settings']['image_type'] ?? '' ) ) {
+				continue;
+			}
+			if ( 'generated' === (string) $record['status'] ) {
+				$latest_by_slot[ absint( $record['settings']['image_index'] ?? 0 ) ] = absint( $record['id'] );
+			}
+		}
+		foreach ( $latest_by_slot as $record_id ) {
+			$this->featured->approve( $record_id ); // Ảnh nội dung: approve chỉ đánh dấu sẵn sàng chèn.
+		}
+
+		// 3) Chèn mọi ảnh đã duyệt vào vị trí theo kế hoạch.
+		$result = $this->inserter->insert( $post_id );
+		if ( is_wp_error( $result ) ) {
+			if ( 'ntci_insert_nothing_approved' === (string) $result->get_error_code() ) {
+				// Không có ảnh nội dung mới (bài chỉ chạy ảnh đại diện, hoặc slot đã đầy) — không phải lỗi.
+				$job['items'][ $index ]['insert'] = 'skipped';
+				return;
+			}
+			$job['items'][ $index ]['insert'] = 'error';
+			$job['items'][ $index ]['error']  = sanitize_text_field( $result->get_error_message() );
+			$job['errors']++;
+			return;
+		}
+		$job['items'][ $index ]['insert']   = 'done';
+		$job['items'][ $index ]['inserted'] = count( (array) ( $result['inserted'] ?? array() ) );
 	}
 
 	/** @param array<string, mixed> $job */

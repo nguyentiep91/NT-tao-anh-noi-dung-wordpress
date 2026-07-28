@@ -37,6 +37,7 @@ final class NT_Content_Images_Content_Admin {
 					'confirmInsert'   => __( 'Chèn các ảnh đã duyệt vào nội dung bài viết? Plugin sẽ lưu bản gốc để hoàn tác.', 'nt-tao-anh-noi-dung-wordpress' ),
 					'confirmRollback' => __( 'Khôi phục nội dung bài về trạng thái trước khi chèn ảnh?', 'nt-tao-anh-noi-dung-wordpress' ),
 				'confirmQueue'    => __( 'Bắt đầu chạy hàng loạt? Mỗi ảnh là một yêu cầu API có thể phát sinh chi phí. Đợt chạy tự dừng khi chạm giới hạn ảnh/ngày.', 'nt-tao-anh-noi-dung-wordpress' ),
+				'confirmQueueAutoInsert' => __( 'Bắt đầu chạy hàng loạt VỚI TỰ ĐỘNG CHÈN? Ảnh tạo xong sẽ được duyệt và chèn thẳng vào từng bài theo kế hoạch (bài chưa có ảnh đại diện sẽ được đặt luôn). Mỗi bài đều có bản lưu để hoàn tác. Mỗi ảnh là một yêu cầu API có thể phát sinh chi phí.', 'nt-tao-anh-noi-dung-wordpress' ),
 				'confirmQueueCancel' => __( 'Hủy đợt chạy hàng loạt hiện tại?', 'nt-tao-anh-noi-dung-wordpress' ),
 				'confirmCleanup'  => __( 'Dọn Media Library? Mọi ảnh do plugin tạo mà KHÔNG được chèn vào bài và KHÔNG làm ảnh đại diện sẽ bị xoá vĩnh viễn — gồm cả ảnh đang chờ duyệt. Ảnh đang dùng và ảnh anh tự tải lên được giữ nguyên.', 'nt-tao-anh-noi-dung-wordpress' ),
 					'networkError'    => __( 'Không thể kết nối tới WordPress REST API.', 'nt-tao-anh-noi-dung-wordpress' ),
@@ -58,10 +59,11 @@ final class NT_Content_Images_Content_Admin {
 
 			<section class="ntci-content-panel">
 				<h2><?php echo esc_html__( 'Chạy hàng loạt', 'nt-tao-anh-noi-dung-wordpress' ); ?></h2>
-				<p><?php echo esc_html__( 'Xử lý nhiều bài liên tiếp, mỗi bước một ảnh. Giữ tab này mở trong khi chạy; có thể tạm dừng hoặc hủy bất kỳ lúc nào. Đợt chạy tự tạm dừng khi chạm giới hạn ảnh/ngày.', 'nt-tao-anh-noi-dung-wordpress' ); ?></p>
+				<p><?php echo esc_html__( 'Xử lý nhiều bài liên tiếp, mỗi bước một ảnh. Khi bật "Tự động duyệt & chèn", ảnh tạo xong sẽ được chèn thẳng vào từng bài theo kế hoạch và đặt ảnh đại diện — mỗi bài vẫn có bản lưu để hoàn tác. Giữ tab này mở trong khi chạy; có thể tạm dừng hoặc hủy bất kỳ lúc nào. Đợt chạy tự tạm dừng khi chạm giới hạn ảnh/ngày.', 'nt-tao-anh-noi-dung-wordpress' ); ?></p>
 				<div class="ntci-queue-controls">
 					<label><input type="checkbox" id="ntci-queue-featured" checked> <?php echo esc_html__( 'Ảnh đại diện (bài đang thiếu)', 'nt-tao-anh-noi-dung-wordpress' ); ?></label>
 					<label><input type="checkbox" id="ntci-queue-content" checked> <?php echo esc_html__( 'Ảnh trong bài (theo kế hoạch)', 'nt-tao-anh-noi-dung-wordpress' ); ?></label>
+					<label><input type="checkbox" id="ntci-queue-autoinsert" checked> <?php echo esc_html__( 'Tự động duyệt & chèn vào bài sau khi tạo xong mỗi bài', 'nt-tao-anh-noi-dung-wordpress' ); ?></label>
 					<label><?php echo esc_html__( 'Số bài tối đa', 'nt-tao-anh-noi-dung-wordpress' ); ?> <input type="number" id="ntci-queue-limit" min="1" max="50" value="10"></label>
 					<button type="button" class="button button-primary" id="ntci-queue-start"><?php echo esc_html__( 'Bắt đầu chạy', 'nt-tao-anh-noi-dung-wordpress' ); ?></button>
 					<button type="button" class="button" id="ntci-queue-pause" hidden><?php echo esc_html__( 'Tạm dừng', 'nt-tao-anh-noi-dung-wordpress' ); ?></button>

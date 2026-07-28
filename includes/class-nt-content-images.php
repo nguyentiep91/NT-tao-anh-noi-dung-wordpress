@@ -234,7 +234,7 @@ final class NT_Content_Images {
 		$this->featured_generator = new NT_Content_Images_Featured_Image_Generator( $this->brief_generator, $this->brief_repository, new NT_Content_Images_Featured_Prompt_Builder( $this->profiles ), $this->provider_manager, $this->media_manager, $this->generation_repository, $this->generation_settings, $this->profiles, new NT_Content_Images_Generation_Lock(), new NT_Content_Images_Safe_Logger() );
 		$this->content_generator = new NT_Content_Images_Content_Image_Generator( $this->brief_generator, $this->brief_repository, new NT_Content_Images_Content_Prompt_Builder( $this->profiles ), $this->provider_manager, $this->media_manager, $this->generation_repository, $this->generation_settings, $this->profiles, new NT_Content_Images_Generation_Lock(), new NT_Content_Images_Safe_Logger() );
 		$this->content_inserter = new NT_Content_Images_Content_Inserter( $this->generation_repository, new NT_Content_Images_Safe_Logger() );
-		$this->generation_queue = new NT_Content_Images_Generation_Queue( $this->featured_generator, $this->content_generator, $this->audit_repository, $this->profiles, $this->generation_settings );
+		$this->generation_queue = new NT_Content_Images_Generation_Queue( $this->featured_generator, $this->content_generator, $this->audit_repository, $this->profiles, $this->generation_settings, $this->generation_repository, $this->content_inserter );
 		$this->template_registry = new NT_Content_Images_Template_Registry();
 		$this->template_settings = new NT_Content_Images_Template_Settings( $this->template_registry );
 		$this->overlay_service = new NT_Content_Images_Overlay_Service(

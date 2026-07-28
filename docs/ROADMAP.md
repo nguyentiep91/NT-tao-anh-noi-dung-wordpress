@@ -79,6 +79,7 @@ Mục tiêu: repository có cấu trúc rõ ràng, plugin kích hoạt an toàn 
 ## Phase 3 — Queue và Workflow
 
 - [x] Hàng đợi batch: mỗi bước một ảnh, pause/resume/cancel, lỗi từng bài không chặn cả đợt.
+- [x] Tùy chọn tự động duyệt & chèn ảnh vào bài ngay trong đợt chạy hàng loạt (0.13.0).
 - [x] Giới hạn tổng ảnh AI/ngày cho mọi provider; đợt chạy tự tạm dừng khi chạm trần.
 - [x] Nén WebP khi lưu ảnh provider vào Media Library.
 - [ ] Chạy nền bằng WP-Cron/Action Scheduler (hiện cần giữ tab admin mở).
@@ -118,7 +119,7 @@ Mục tiêu: repository có cấu trúc rõ ràng, plugin kích hoạt an toàn 
 - [x] Chèn block ảnh an toàn theo anchor (Gutenberg + Classic), bỏ qua anchor không tìm thấy.
 - [x] Snapshot trước khi chèn và rollback byte-identical từng bài.
 - [x] Màn hình quản trị Ảnh trong bài (kế hoạch → tạo → duyệt → chèn → hoàn tác).
-- [ ] Batch nhiều bài (chờ queue nền Phase 3).
+- [x] Batch nhiều bài với tự động duyệt + chèn theo kế hoạch (0.13.0).
 
 ## Phase 8 — Canva tùy chọn
 

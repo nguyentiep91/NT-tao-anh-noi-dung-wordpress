@@ -29,6 +29,7 @@ final class NT_Content_Images_Queue_REST_Controller {
 				'args'                => array(
 					'include_featured' => array( 'required' => false ),
 					'include_content'  => array( 'required' => false ),
+					'auto_insert'      => array( 'required' => false ),
 					'limit'            => array( 'required' => false, 'sanitize_callback' => 'absint' ),
 				),
 			)
@@ -49,6 +50,7 @@ final class NT_Content_Images_Queue_REST_Controller {
 			array(
 				'include_featured' => rest_sanitize_boolean( $request->get_param( 'include_featured' ) ),
 				'include_content'  => rest_sanitize_boolean( $request->get_param( 'include_content' ) ),
+				'auto_insert'      => rest_sanitize_boolean( $request->get_param( 'auto_insert' ) ),
 				'limit'            => absint( $request->get_param( 'limit' ) ?: 10 ),
 			)
 		);

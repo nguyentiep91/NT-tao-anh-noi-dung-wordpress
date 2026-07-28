@@ -1,4 +1,4 @@
-# Chạy hàng loạt và giới hạn ngày — phiên bản 0.11.0
+# Chạy hàng loạt và giới hạn ngày — phiên bản 0.11.0 (tự động chèn từ 0.13.0)
 
 ## Mục tiêu
 
@@ -29,6 +29,18 @@ Start: chọn phạm vi (ảnh đại diện / ảnh trong bài) + số bài t�
 - Transient lock chặn hai tab cùng bấm step.
 - Bài đã có featured → đánh dấu `skipped`; kế hoạch không có ảnh nội dung → `skipped`.
 - Đợt chạy **tự tạm dừng** khi chạm giới hạn ngày (`pause_reason = daily_limit`) và có thể tiếp tục hôm sau.
+
+## Tự động duyệt & chèn (0.13.0)
+
+Checkbox **"Tự động duyệt & chèn vào bài sau khi tạo xong mỗi bài"** (mặc định bật) thêm một bước cục bộ `insert` cho từng bài sau khi tạo đủ ảnh:
+
+1. Đặt ảnh đại diện: duyệt bản `generated` mới nhất không phải ảnh nội dung (thường là bản đã chèn chữ); chỉ khi bài chưa có thumbnail.
+2. Duyệt bản mới nhất của **từng vị trí** ảnh trong bài (bản chèn chữ thắng bản gốc).
+3. Gọi Content Inserter chèn theo kế hoạch — có snapshot, hoàn tác riêng từng bài như luồng thủ công.
+
+Bước insert không gọi API nên không tính vào giới hạn ngày. Bài không có ảnh nội dung mới → `skipped`; lỗi chèn (không tìm thấy anchor) được ghi vào bài đó và đợt chạy vẫn đi tiếp. Trạng thái từng bài hiển thị thêm cột "chèn vào bài" với số ảnh đã chèn.
+
+Tắt checkbox để quay về hành vi cũ: ảnh nằm chờ duyệt thủ công.
 
 ## Giới hạn ảnh AI/ngày
 
