@@ -71,11 +71,25 @@
 		return labels[ status ] || status;
 	}
 
+	let currentHeadings = [];
+
+	function headingOptions( selected, includeAuto ) {
+		const auto = includeAuto ? '<option value="">— Theo kế hoạch tự động —</option>' : '';
+		return auto + currentHeadings.map( function ( heading ) {
+			const sel = heading.text === selected ? ' selected' : '';
+			return '<option value="' + escapeHtml( heading.text ) + '"' + sel + '>H' + Number( heading.level ) + ': ' + escapeHtml( heading.text ) + '</option>';
+		} ).join( '' );
+	}
+
 	function renderSlots( plan ) {
-		slotsWrap.innerHTML = plan.slots.map( function ( slot ) {
+		currentHeadings = plan.headings || [];
+		const cards = plan.slots.map( function ( slot ) {
 			const record = slot.record;
+			const index = Number( slot.index );
 			let body = '';
-			if ( record ) {
+			if ( ! slot.enabled ) {
+				body = '<div class="ntci-content-placeholder">Đã tắt — plugin bỏ qua vị trí này khi tạo và chèn ảnh</div>';
+			} else if ( record ) {
 				const image = record.image_url ? '<img src="' + escapeHtml( record.image_url ) + '" alt="">' : '<div class="ntci-content-placeholder">Chưa có ảnh</div>';
 				let actions = '';
 				if ( record.status === 'generated' ) {
@@ -85,10 +99,38 @@
 				}
 				body = image + '<p><span class="ntci-content-badge ntci-content-badge--' + escapeHtml( record.status ) + '">' + escapeHtml( statusLabel( record.status ) ) + '</span></p><p class="ntci-content-slot-actions">' + actions + '</p>';
 			} else {
-				body = '<div class="ntci-content-placeholder">' + ( slot.safe ? 'Chưa tạo ảnh cho vị trí này' : 'Vị trí cần xử lý thủ công — plugin sẽ không tự chèn' ) + '</div><p><button type="button" class="button ntci-content-generate-one" data-index="' + Number( slot.index ) + '" ' + ( slot.safe ? '' : 'disabled' ) + '>Tạo ảnh vị trí này</button></p>';
+				body = '<div class="ntci-content-placeholder">' + ( slot.safe ? 'Chưa tạo ảnh cho vị trí này' : 'Vị trí cần xử lý thủ công — plugin sẽ không tự chèn' ) + '</div><p><button type="button" class="button ntci-content-generate-one" data-index="' + index + '" ' + ( slot.safe ? '' : 'disabled' ) + '>Tạo ảnh vị trí này</button></p>';
 			}
-			return '<article class="ntci-content-slot"><header><strong>Ảnh ' + Number( slot.index ) + '</strong> — ' + escapeHtml( placementLabel( slot.placement ) ) + '<br><small>' + escapeHtml( slot.purpose || '' ) + '</small></header>' + body + '</article>';
+			const flags = ( slot.user_modified ? ' <span class="ntci-content-badge">✎ đã tuỳ chỉnh</span>' : '' ) + ( slot.is_extra ? ' <span class="ntci-content-badge">thêm tay</span>' : '' );
+			const effectiveHeading = slot.placement && slot.placement.type === 'before_heading' ? ( slot.placement.heading_text || '' ) : '';
+			let editor = '<div class="ntci-plan-editor" style="border-top:1px solid #e2e8f0;margin-top:8px;padding-top:8px;">';
+			editor += '<label style="display:block;margin-bottom:6px;">Vị trí chèn: <select class="ntci-plan-heading" data-index="' + index + '">' + headingOptions( effectiveHeading, ! slot.is_extra ) + '</select></label>';
+			editor += '<label style="display:block;margin-bottom:6px;">Mô tả cảnh cho AI (để trống = tự động theo mục):<br><textarea class="ntci-plan-scene" data-index="' + index + '" rows="3" style="width:100%;" placeholder="Ví dụ: Hai kỹ sư trao đổi trước màn hình máy tính hiển thị bản vẽ công trình, ánh sáng tự nhiên…">' + escapeHtml( slot.custom_scene || '' ) + '</textarea></label>';
+			editor += '<p class="ntci-content-slot-actions">'
+				+ '<button type="button" class="button ntci-plan-save-scene" data-index="' + index + '">Lưu mô tả</button> '
+				+ '<button type="button" class="button ntci-plan-toggle" data-index="' + index + '" data-enabled="' + ( slot.enabled ? '0' : '1' ) + '">' + ( slot.enabled ? 'Tắt vị trí này' : 'Bật lại vị trí này' ) + '</button>'
+				+ ( slot.is_extra ? ' <button type="button" class="button ntci-plan-remove-extra" data-index="' + index + '">Xoá vị trí</button>' : '' )
+				+ '</p></div>';
+			return '<article class="ntci-content-slot"' + ( slot.enabled ? '' : ' style="opacity:.55"' ) + '><header><strong>Ảnh ' + index + '</strong> — ' + escapeHtml( placementLabel( slot.placement ) ) + flags + '<br><small>' + escapeHtml( slot.purpose || '' ) + '</small></header>' + body + editor + '</article>';
 		} ).join( '' );
+
+		let footer = '<div class="ntci-plan-footer" style="margin-top:14px;">';
+		if ( currentHeadings.length ) {
+			footer += '<label>Thêm ảnh tại mục: <select id="ntci-plan-add-heading">' + headingOptions( '', false ) + '</select></label> <button type="button" class="button" id="ntci-plan-add">+ Thêm vị trí ảnh</button> ';
+		}
+		if ( plan.has_overrides ) {
+			footer += '<button type="button" class="button" id="ntci-plan-reset" style="color:#b32d2e;">Xoá mọi tuỳ chỉnh, về kế hoạch tự động</button>';
+		}
+		footer += '</div>';
+		slotsWrap.innerHTML = cards + footer;
+	}
+
+	async function planOverride( data, message ) {
+		await act( message || 'Đang lưu tuỳ chỉnh kế hoạch…', async function () {
+			const plan = await request( '/content-images/plan-override', 'POST', Object.assign( { post_id: currentPostId }, data ) );
+			renderSlots( plan );
+			setFeedback( 'Đã lưu tuỳ chỉnh kế hoạch.', 'success' );
+		} );
 	}
 
 	async function openPlan( postId ) {
@@ -124,6 +166,13 @@
 		}
 	}
 
+	document.addEventListener( 'change', function ( event ) {
+		const headingSelect = event.target.closest( '.ntci-plan-heading' );
+		if ( headingSelect ) {
+			planOverride( { index: Number( headingSelect.dataset.index ), heading_text: headingSelect.value }, 'Đang đổi vị trí chèn…' );
+		}
+	} );
+
 	document.addEventListener( 'click', function ( event ) {
 		const open = event.target.closest( '.ntci-content-open' );
 		const approve = event.target.closest( '.ntci-content-approve' );
@@ -152,6 +201,25 @@
 				setFeedback( 'Đã tạo ảnh. Hãy duyệt để chèn vào bài.', 'success' );
 				await openPlan( currentPostId );
 			} );
+		} else if ( event.target.closest( '.ntci-plan-toggle' ) ) {
+			const toggle = event.target.closest( '.ntci-plan-toggle' );
+			planOverride( { index: Number( toggle.dataset.index ), enabled: toggle.dataset.enabled === '1' } );
+		} else if ( event.target.closest( '.ntci-plan-save-scene' ) ) {
+			const saveScene = event.target.closest( '.ntci-plan-save-scene' );
+			const textarea = document.querySelector( '.ntci-plan-scene[data-index="' + saveScene.dataset.index + '"]' );
+			planOverride( { index: Number( saveScene.dataset.index ), custom_scene: textarea ? textarea.value : '' }, 'Đang lưu mô tả cảnh…' );
+		} else if ( event.target.closest( '.ntci-plan-remove-extra' ) ) {
+			const removeExtra = event.target.closest( '.ntci-plan-remove-extra' );
+			planOverride( { remove_extra: Number( removeExtra.dataset.index ) }, 'Đang xoá vị trí…' );
+		} else if ( event.target.closest( '#ntci-plan-add' ) ) {
+			const select = document.querySelector( '#ntci-plan-add-heading' );
+			if ( select && select.value ) {
+				planOverride( { add_heading: select.value }, 'Đang thêm vị trí ảnh…' );
+			}
+		} else if ( event.target.closest( '#ntci-plan-reset' ) ) {
+			if ( window.confirm( 'Xoá mọi tuỳ chỉnh và quay về kế hoạch tự động 100%?' ) ) {
+				planOverride( { reset: true }, 'Đang khôi phục kế hoạch tự động…' );
+			}
 		}
 	} );
 

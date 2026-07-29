@@ -21,6 +21,7 @@ final class NT_Content_Images {
 	private ?NT_Content_Images_Audit_Job_Store $audit_job_store = null;
 	private ?NT_Content_Images_Audit_Batch_Runner $audit_runner = null;
 	private ?NT_Content_Images_Brief_Repository $brief_repository = null;
+	private ?NT_Content_Images_Plan_Settings $plan_settings = null;
 	private ?NT_Content_Images_Brief_Generator $brief_generator = null;
 	private ?NT_Content_Images_Generation_Settings $generation_settings = null;
 	private ?NT_Content_Images_Generation_Repository $generation_repository = null;
@@ -63,10 +64,10 @@ final class NT_Content_Images {
 		);
 		$source_rest = new NT_Content_Images_Source_REST_Controller( $this->get_asset_service(), $this->get_asset_repository(), $this->get_source_settings(), $this->get_stock_provider_manager() );
 		$template_rest = new NT_Content_Images_Template_REST_Controller( $this->get_overlay_service() );
-		$content_rest = new NT_Content_Images_Content_REST_Controller( $this->get_content_generator(), $this->get_content_inserter(), $this->get_audit_repository(), $this->get_profile_repository(), $this->get_media_cleanup() );
+		$content_rest = new NT_Content_Images_Content_REST_Controller( $this->get_content_generator(), $this->get_content_inserter(), $this->get_audit_repository(), $this->get_profile_repository(), $this->get_media_cleanup(), $this->get_plan_settings() );
 		$queue_rest = new NT_Content_Images_Queue_REST_Controller( $this->get_generation_queue() );
 		$audit_admin = new NT_Content_Images_Audit_Admin( $this->get_audit_query(), $this->get_post_type_registry() );
-		$brief_admin = new NT_Content_Images_Brief_Admin();
+		$brief_admin = new NT_Content_Images_Brief_Admin( $this->get_plan_settings() );
 		$settings_admin = new NT_Content_Images_Settings_Admin( $this->get_profile_repository(), $this->get_post_type_registry(), $this->get_rule_pack_registry() );
 		$generation_admin = new NT_Content_Images_Generation_Admin( $this->get_generation_settings(), $this->get_canva_settings(), $this->get_canva_oauth(), $this->get_template_settings(), $this->get_overlay_service(), $this->get_provider_manager() );
 		$sources_admin = new NT_Content_Images_Sources_Admin( $this->get_source_settings(), $this->get_generation_settings() );
@@ -159,6 +160,7 @@ final class NT_Content_Images {
 	public function get_audit_runner(): NT_Content_Images_Audit_Batch_Runner { $this->initialize_audit_services(); return $this->audit_runner; }
 	public function get_brief_repository(): NT_Content_Images_Brief_Repository { $this->initialize_brief_services(); return $this->brief_repository; }
 	public function get_brief_generator(): NT_Content_Images_Brief_Generator { $this->initialize_brief_services(); return $this->brief_generator; }
+	public function get_plan_settings(): NT_Content_Images_Plan_Settings { $this->initialize_brief_services(); return $this->plan_settings; }
 	public function get_generation_settings(): NT_Content_Images_Generation_Settings { $this->initialize_generation_services(); return $this->generation_settings; }
 	public function get_generation_repository(): NT_Content_Images_Generation_Repository { $this->initialize_generation_services(); return $this->generation_repository; }
 	public function get_provider_manager(): NT_Content_Images_Image_Provider_Manager { $this->initialize_generation_services(); return $this->provider_manager; }
@@ -201,6 +203,7 @@ final class NT_Content_Images {
 		if ( null !== $this->brief_generator ) { return; }
 		$this->initialize_audit_services();
 		$this->brief_repository = new NT_Content_Images_Brief_Repository();
+		$this->plan_settings = new NT_Content_Images_Plan_Settings();
 		$this->brief_generator = new NT_Content_Images_Brief_Generator(
 			new NT_Content_Images_Brief_Source_Builder( $this->audit_repository, $this->profiles, $this->seo, $this->content_mapper ),
 			new NT_Content_Images_Intent_Classifier( $this->rule_packs, $this->profiles ),
@@ -209,7 +212,8 @@ final class NT_Content_Images {
 			new NT_Content_Images_Restriction_Builder( $this->rule_packs, $this->profiles ),
 			new NT_Content_Images_Brief_Validator(),
 			$this->brief_repository,
-			$this->profiles
+			$this->profiles,
+			$this->plan_settings
 		);
 	}
 

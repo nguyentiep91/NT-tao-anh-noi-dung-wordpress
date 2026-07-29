@@ -18,6 +18,7 @@ final class NT_Content_Images_Brief_Generator {
 	private NT_Content_Images_Brief_Validator $validator;
 	private NT_Content_Images_Brief_Repository $repository;
 	private NT_Content_Images_Profile_Repository $profiles;
+	private NT_Content_Images_Plan_Settings $plan_settings;
 
 	public function __construct(
 		NT_Content_Images_Brief_Source_Builder $source_builder,
@@ -27,7 +28,8 @@ final class NT_Content_Images_Brief_Generator {
 		NT_Content_Images_Restriction_Builder $restriction_builder,
 		NT_Content_Images_Brief_Validator $validator,
 		NT_Content_Images_Brief_Repository $repository,
-		NT_Content_Images_Profile_Repository $profiles
+		NT_Content_Images_Profile_Repository $profiles,
+		?NT_Content_Images_Plan_Settings $plan_settings = null
 	) {
 		$this->source_builder      = $source_builder;
 		$this->classifier          = $classifier;
@@ -37,6 +39,7 @@ final class NT_Content_Images_Brief_Generator {
 		$this->validator           = $validator;
 		$this->repository          = $repository;
 		$this->profiles            = $profiles;
+		$this->plan_settings       = $plan_settings ?? new NT_Content_Images_Plan_Settings();
 	}
 
 	/** @return array<string, mixed>|WP_Error */
@@ -162,10 +165,8 @@ final class NT_Content_Images_Brief_Generator {
 	}
 
 	private function target_content_image_count( int $word_count, string $content_type ): int {
-		$target = $word_count > 3000 ? 3 : ( $word_count >= 1500 ? 2 : 1 );
-		if ( in_array( $content_type, array( 'course', 'service', 'event', 'education_event', 'procurement_service' ), true ) ) {
-			$target = min( 2, $target );
-		}
+		// Quy tắc số ảnh do quản trị viên cấu hình trong Kế hoạch hình ảnh (0.16.0).
+		$target = $this->plan_settings->image_count( $word_count, $content_type );
 		return (int) apply_filters( 'nt_content_images_target_content_image_count', $target, $word_count, $content_type );
 	}
 

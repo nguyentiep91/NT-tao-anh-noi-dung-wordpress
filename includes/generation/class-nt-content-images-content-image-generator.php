@@ -66,7 +66,7 @@ final class NT_Content_Images_Content_Image_Generator {
 		if ( is_wp_error( $brief ) ) {
 			return $brief;
 		}
-		$plan    = is_array( $brief['brief']['content_images'] ?? null ) ? $brief['brief']['content_images'] : array();
+		$plan    = $this->plan_images( $post_id, $brief );
 		$records = $this->get_content_records( $post_id );
 		$slots   = array();
 		foreach ( $plan as $image ) {
@@ -79,23 +79,35 @@ final class NT_Content_Images_Content_Image_Generator {
 				}
 			}
 			$slots[] = array(
-				'index'     => $index,
-				'purpose'   => sanitize_text_field( (string) ( $image['purpose'] ?? '' ) ),
-				'placement' => $placement,
-				'safe'      => 'safe_candidate' === (string) ( $placement['safety'] ?? '' ),
-				'record'    => $record,
+				'index'         => $index,
+				'purpose'       => sanitize_text_field( (string) ( $image['purpose'] ?? '' ) ),
+				'placement'     => $placement,
+				'safe'          => 'safe_candidate' === (string) ( $placement['safety'] ?? '' ) && ! empty( $image['enabled'] ),
+				'enabled'       => ! empty( $image['enabled'] ),
+				'custom_scene'  => (string) ( $image['custom_scene'] ?? '' ),
+				'user_modified' => ! empty( $image['user_modified'] ),
+				'is_extra'      => ! empty( $image['is_extra'] ),
+				'record'        => $record,
 			);
 		}
 		return array(
-			'post_id'    => $post_id,
-			'title'      => get_the_title( $post_id ),
-			'edit_url'   => get_edit_post_link( $post_id, 'raw' ),
-			'view_url'   => get_permalink( $post_id ),
-			'brief_id'   => absint( $brief['id'] ),
-			'slots'      => $slots,
-			'records'    => $records,
-			'snapshot'   => '' !== (string) get_post_meta( $post_id, '_ntci_content_snapshot', true ),
+			'post_id'       => $post_id,
+			'title'         => get_the_title( $post_id ),
+			'edit_url'      => get_edit_post_link( $post_id, 'raw' ),
+			'view_url'      => get_permalink( $post_id ),
+			'brief_id'      => absint( $brief['id'] ),
+			'slots'         => $slots,
+			'records'       => $records,
+			'headings'      => NT_Content_Images_Plan_Overrides::list_headings( (string) get_post_field( 'post_content', $post_id ) ),
+			'has_overrides' => NT_Content_Images_Plan_Overrides::has_overrides( $post_id ),
+			'snapshot'      => '' !== (string) get_post_meta( $post_id, '_ntci_content_snapshot', true ),
 		);
+	}
+
+	/** Automatic plan from the brief merged with per-post user overrides. */
+	private function plan_images( int $post_id, array $brief ): array {
+		$brief_images = is_array( $brief['brief']['content_images'] ?? null ) ? $brief['brief']['content_images'] : array();
+		return NT_Content_Images_Plan_Overrides::apply( $brief_images, NT_Content_Images_Plan_Overrides::get( $post_id ) );
 	}
 
 	/**
@@ -132,7 +144,7 @@ final class NT_Content_Images_Content_Image_Generator {
 		if ( is_wp_error( $brief ) ) {
 			return $brief;
 		}
-		$plan = is_array( $brief['brief']['content_images'] ?? null ) ? $brief['brief']['content_images'] : array();
+		$plan = $this->plan_images( $post_id, $brief );
 		if ( array() === $plan ) {
 			return new WP_Error( 'ntci_content_plan_empty', __( 'Kế hoạch hình ảnh của bài này không có ảnh trong nội dung.', 'nt-tao-anh-noi-dung-wordpress' ) );
 		}
@@ -152,6 +164,10 @@ final class NT_Content_Images_Content_Image_Generator {
 			$index     = absint( $image['index'] ?? 0 );
 			$placement = is_array( $image['placement'] ?? null ) ? $image['placement'] : array();
 			if ( $only_index > 0 && $index !== $only_index ) {
+				continue;
+			}
+			if ( empty( $image['enabled'] ) ) {
+				$skipped[] = array( 'index' => $index, 'reason' => 'disabled_by_user' );
 				continue;
 			}
 			if ( 'safe_candidate' !== (string) ( $placement['safety'] ?? '' ) ) {

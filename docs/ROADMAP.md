@@ -44,7 +44,8 @@ Mục tiêu: repository có cấu trúc rõ ràng, plugin kích hoạt an toàn 
 - [x] Image Brief JSON schema `1.0`, validator, REST API và giao diện quản trị.
 - [x] Tạo tối đa 20 brief/lần; gửi duyệt, duyệt và từ chối.
 - [ ] Pilot 10 bài đại diện trên LocalWP.
-- [ ] Giao diện chỉnh sửa sâu từng trường brief.
+- [x] Kế hoạch ảnh tuỳ chỉnh (0.16.0): quy tắc số ảnh theo độ dài bài do quản trị viên đặt; chỉnh từng vị trí trong bài — bật/tắt, đổi mục H2/H3, mô tả cảnh riêng gửi AI, thêm vị trí mới, khôi phục kế hoạch tự động (docs/PLAN-CUSTOMIZATION.md).
+- [ ] Giao diện chỉnh sửa sâu từng trường brief (các trường còn lại: purpose, visual_type, aspect_ratio).
 
 ### Sprint Generic Core & Profile System
 

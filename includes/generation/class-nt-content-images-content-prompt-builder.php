@@ -45,19 +45,33 @@ final class NT_Content_Images_Content_Prompt_Builder {
 			'still-life arrangement of relevant real objects on a desk',
 		);
 
-		$parts = array(
-			'Create one supporting in-article illustration for a WordPress blog section. It is NOT a hero banner: keep it calm, editorial and secondary to the text around it.',
-			'Article topic: ' . $topic . '. Content type: ' . str_replace( '_', ' ', $type ) . '.',
-			'' !== $heading ? 'This image illustrates the section: "' . $heading . '".' : 'This image is a visual break right after the article introduction.',
-			'' !== $excerpt ? 'Section context: ' . $excerpt : '',
-			'Visual approach: ' . $visual . '. Camera angle for variation: ' . $angles[ ( $index - 1 ) % count( $angles ) ] . '.',
-			'Use a credible Vietnamese professional context when relevant, without national symbols or official branding.',
+		// Cảnh do quản trị viên tự mô tả trong Kế hoạch hình ảnh thay thế phần cảnh
+		// tự động; khung kỹ thuật (phong cách thật, bố cục, cấm chữ) vẫn giữ nguyên.
+		$custom_scene = sanitize_textarea_field( (string) ( $image['custom_scene'] ?? '' ) );
+		$scene_parts  = '' !== $custom_scene
+			? array(
+				'Scene requested by the site editor (follow it faithfully): ' . $custom_scene,
+				'Article topic for context: ' . $topic . '.',
+			)
+			: array(
+				'Article topic: ' . $topic . '. Content type: ' . str_replace( '_', ' ', $type ) . '.',
+				'' !== $heading ? 'This image illustrates the section: "' . $heading . '".' : 'This image is a visual break right after the article introduction.',
+				'' !== $excerpt ? 'Section context: ' . $excerpt : '',
+				'Visual approach: ' . $visual . '. Camera angle for variation: ' . $angles[ ( $index - 1 ) % count( $angles ) ] . '.',
+			);
+
+		$parts = array_merge(
+			array( 'Create one supporting in-article illustration for a WordPress blog section. It is NOT a hero banner: keep it calm, editorial and secondary to the text around it.' ),
+			$scene_parts,
+			array( 'Use a credible Vietnamese professional context when relevant, without national symbols or official branding.' )
+		);
+		$parts = array_merge( $parts, array(
 			'Photorealistic candid style, like a real photo taken during an ordinary working day: natural ambient light with soft imperfect shadows, true-to-life textures, believable everyday details, unposed natural expressions, slight depth of field, mild film grain.',
 			'Avoid the polished AI stock-photo look: no glossy CGI or 3D-render feel, no oversaturated colors, no flawless studio lighting, no posed models smiling at the camera.',
 			'Landscape 16:9 composition with a single clear subject and generous negative space; it must read well at medium size inside an article column.',
 			'Use brand colors only as barely-noticeable accents if natural: ' . ( '' !== $colors ? $colors : 'restrained neutral tones' ) . '.',
 			'Do not generate any readable text, letters, numbers, logos, watermarks, signatures, certificates, seals, charts with labels or user interfaces.',
-		);
+		) );
 		if ( '' !== $restriction_text ) {
 			$parts[] = 'Mandatory safety constraints: ' . $restriction_text . '.';
 		}

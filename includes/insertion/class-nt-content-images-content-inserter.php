@@ -51,6 +51,8 @@ final class NT_Content_Images_Content_Inserter {
 		}
 		// Slot đã có ảnh nằm trong bài thì không chèn thêm để tránh trùng.
 		$by_index = array_diff_key( $by_index, $inserted_indexes );
+		// Slot bị quản trị viên tắt trong kế hoạch: không chèn dù ảnh đã được duyệt.
+		$by_index = array_diff_key( $by_index, NT_Content_Images_Plan_Overrides::disabled_indexes( $post_id ) );
 		if ( array() === $by_index ) {
 			return new WP_Error( 'ntci_insert_nothing_approved', __( 'Chưa có ảnh nội dung nào được duyệt để chèn. Hãy duyệt ảnh trước.', 'nt-tao-anh-noi-dung-wordpress' ) );
 		}

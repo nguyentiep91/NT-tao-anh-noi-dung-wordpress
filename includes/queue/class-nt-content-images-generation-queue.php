@@ -283,7 +283,8 @@ final class NT_Content_Images_Generation_Queue {
 			}
 		}
 
-		// 2) Duyệt bản mới nhất của từng vị trí ảnh trong bài.
+		// 2) Duyệt bản mới nhất của từng vị trí ảnh trong bài (trừ vị trí bị tắt).
+		$disabled       = NT_Content_Images_Plan_Overrides::disabled_indexes( $post_id );
 		$latest_by_slot = array();
 		foreach ( $records as $record ) {
 			if ( 'content' !== (string) ( $record['settings']['image_type'] ?? '' ) ) {
@@ -293,7 +294,10 @@ final class NT_Content_Images_Generation_Queue {
 				$latest_by_slot[ absint( $record['settings']['image_index'] ?? 0 ) ] = absint( $record['id'] );
 			}
 		}
-		foreach ( $latest_by_slot as $record_id ) {
+		foreach ( $latest_by_slot as $slot => $record_id ) {
+			if ( isset( $disabled[ $slot ] ) ) {
+				continue;
+			}
 			$this->featured->approve( $record_id ); // Ảnh nội dung: approve chỉ đánh dấu sẵn sàng chèn.
 		}
 

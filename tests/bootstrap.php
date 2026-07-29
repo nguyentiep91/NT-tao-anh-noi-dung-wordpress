@@ -125,9 +125,26 @@ function wp_remote_retrieve_header( $response, string $header ): string {
 	return '';
 }
 
+$GLOBALS['ntci_test_postmeta'] = array();
+function get_post_meta( int $post_id, string $key = '', bool $single = false ) {
+	$value = $GLOBALS['ntci_test_postmeta'][ $post_id ][ $key ] ?? '';
+	return $single ? $value : ( '' === $value ? array() : array( $value ) );
+}
+function update_post_meta( int $post_id, string $key, $value ): bool {
+	$GLOBALS['ntci_test_postmeta'][ $post_id ][ $key ] = is_string( $value ) ? stripslashes( $value ) : $value;
+	return true;
+}
+function delete_post_meta( int $post_id, string $key ): bool {
+	unset( $GLOBALS['ntci_test_postmeta'][ $post_id ][ $key ] );
+	return true;
+}
+function wp_slash( $value ) { return is_string( $value ) ? addslashes( $value ) : $value; }
+
 require_once dirname( __DIR__ ) . '/includes/security/class-nt-content-images-secret-redactor.php';
 require_once dirname( __DIR__ ) . '/includes/logging/class-nt-content-images-safe-logger.php';
 require_once dirname( __DIR__ ) . '/includes/generation/class-nt-content-images-generation-settings.php';
+require_once dirname( __DIR__ ) . '/includes/brief/class-nt-content-images-plan-settings.php';
+require_once dirname( __DIR__ ) . '/includes/brief/class-nt-content-images-plan-overrides.php';
 require_once dirname( __DIR__ ) . '/includes/generation/class-nt-content-images-usage-tracker.php';
 require_once dirname( __DIR__ ) . '/includes/generation/class-nt-content-images-caption-writer.php';
 require_once dirname( __DIR__ ) . '/includes/generation/class-nt-content-images-generation-lock.php';
