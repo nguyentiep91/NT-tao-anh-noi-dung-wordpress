@@ -13,6 +13,7 @@ final class NT_Content_Images_OpenRouter_Image_Provider implements NT_Content_Im
 	private const ENDPOINT = 'https://openrouter.ai/api/v1/images';
 	private const MODELS_ENDPOINT = 'https://openrouter.ai/api/v1/images/models';
 	private const MODELS_FALLBACK_ENDPOINT = 'https://openrouter.ai/api/v1/models?output_modalities=image';
+	private const TEXT_MODELS_ENDPOINT = 'https://openrouter.ai/api/v1/models';
 	private const MAX_IMAGE_BYTES = 25165824;
 
 	private NT_Content_Images_Generation_Settings $settings;
@@ -78,6 +79,83 @@ final class NT_Content_Images_OpenRouter_Image_Provider implements NT_Content_Im
 
 		set_transient( $cache_key, $models, 15 * MINUTE_IN_SECONDS );
 		return $models;
+	}
+
+	/**
+	 * Full catalog of text-output models (dùng cho soạn alt/caption).
+	 *
+	 * @return array<int, array{id: string, name: string, price_label: string}>|WP_Error
+	 */
+	public function list_text_models() {
+		$key = $this->settings->get_api_key( 'openrouter' );
+		if ( '' === $key ) {
+			return new WP_Error( 'ntci_openrouter_key_missing', __( 'Chưa cấu hình OpenRouter API key.', 'nt-tao-anh-noi-dung-wordpress' ) );
+		}
+
+		$cache_key = 'ntci_or_text_models_' . substr( hash( 'sha256', $key ), 0, 16 );
+		$cached = get_transient( $cache_key );
+		if ( is_array( $cached ) && ! empty( $cached ) ) {
+			return $cached;
+		}
+
+		$result = $this->request_model_list( self::TEXT_MODELS_ENDPOINT, $key );
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		$models = self::normalize_text_models( $result );
+		if ( empty( $models ) ) {
+			return new WP_Error( 'ntci_openrouter_text_models_empty', __( 'OpenRouter không trả về model văn bản khả dụng cho API key này.', 'nt-tao-anh-noi-dung-wordpress' ) );
+		}
+
+		set_transient( $cache_key, $models, 15 * MINUTE_IN_SECONDS );
+		return $models;
+	}
+
+	/**
+	 * Filters raw /models rows down to text-output models. Pure — unit tested.
+	 *
+	 * @param array<int, mixed> $rows Raw model rows from OpenRouter.
+	 * @return array<int, array{id: string, name: string, price_label: string}>
+	 */
+	public static function normalize_text_models( array $rows ): array {
+		$models = array();
+		foreach ( $rows as $item ) {
+			if ( ! is_array( $item ) ) {
+				continue;
+			}
+			$id = sanitize_text_field( (string) ( $item['id'] ?? '' ) );
+			if ( '' === $id || ! preg_match( '/^[A-Za-z0-9._:-]+\/[A-Za-z0-9._:-]+$/', $id ) ) {
+				continue;
+			}
+			$outputs = $item['architecture']['output_modalities'] ?? null;
+			if ( ! is_array( $outputs ) || ! in_array( 'text', array_map( 'strval', $outputs ), true ) ) {
+				continue;
+			}
+			$models[] = array(
+				'id'          => $id,
+				'name'        => sanitize_text_field( (string) ( $item['name'] ?? $id ) ),
+				'price_label' => self::format_price_per_million( (string) ( $item['pricing']['prompt'] ?? '' ) ),
+			);
+		}
+		usort(
+			$models,
+			static fn ( array $left, array $right ): int => strcasecmp( (string) $left['name'], (string) $right['name'] )
+		);
+		return $models;
+	}
+
+	/** Converts OpenRouter per-token USD pricing to a compact per-1M label. */
+	public static function format_price_per_million( string $per_token ): string {
+		if ( '' === $per_token || ! is_numeric( $per_token ) ) {
+			return '';
+		}
+		$per_million = (float) $per_token * 1000000;
+		if ( $per_million <= 0 ) {
+			return __( 'miễn phí', 'nt-tao-anh-noi-dung-wordpress' );
+		}
+		$decimals = $per_million >= 1 ? 2 : 3;
+		return '~$' . rtrim( rtrim( number_format( $per_million, $decimals, '.', '' ), '0' ), '.' ) . '/1M';
 	}
 
 	/** @return array<string, mixed>|WP_Error */

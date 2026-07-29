@@ -28,7 +28,9 @@ chuỗi mẫu cứng ("Minh họa cho phần X", "Ảnh được tạo tự đ�
 
 - Checkbox **"Dùng AI soạn alt text & caption"** (mặc định bật; tự bỏ qua khi
   chưa có key OpenRouter).
-- Ô **"Model soạn alt/caption"** dạng `provider/model`.
+- Dropdown **"Model soạn alt/caption"**: tải toàn bộ model văn bản từ OpenRouter
+  (~357 model, kèm giá input mỗi 1 triệu token, cache 15 phút). Chưa có key thì
+  hiện ô nhập tay `provider/model`.
 
 ## Kiểm thử thật (LocalWP, 2026-07-28)
 

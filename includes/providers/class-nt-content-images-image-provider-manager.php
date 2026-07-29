@@ -63,4 +63,14 @@ final class NT_Content_Images_Image_Provider_Manager {
 		}
 		return $this->providers[ $provider_id ]->list_models();
 	}
+
+	/** @return array<int, array{id: string, name: string, price_label: string}>|WP_Error */
+	public function list_text_models( string $provider_id ) {
+		$provider_id = sanitize_key( $provider_id );
+		$provider    = $this->providers[ $provider_id ] ?? null;
+		if ( null === $provider || ! method_exists( $provider, 'list_text_models' ) ) {
+			return new WP_Error( 'ntci_provider_no_text_models', __( 'Nhà cung cấp này không hỗ trợ danh sách model văn bản.', 'nt-tao-anh-noi-dung-wordpress' ) );
+		}
+		return $provider->list_text_models();
+	}
 }

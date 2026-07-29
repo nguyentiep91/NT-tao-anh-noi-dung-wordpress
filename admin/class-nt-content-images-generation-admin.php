@@ -149,6 +149,17 @@ final class NT_Content_Images_Generation_Admin {
 		if ( '' !== $current_openrouter_model && ! in_array( $current_openrouter_model, array_column( $openrouter_models, 'id' ), true ) ) {
 			array_unshift( $openrouter_models, array( 'id' => $current_openrouter_model, 'name' => $current_openrouter_model ) );
 		}
+		$caption_models = array();
+		if ( ! empty( $config['providers']['openrouter']['configured'] ) ) {
+			$text_models = $this->providers->list_text_models( 'openrouter' );
+			if ( ! is_wp_error( $text_models ) ) {
+				$caption_models = $text_models;
+			}
+		}
+		$current_caption_model = (string) $config['caption_model'];
+		if ( '' !== $current_caption_model && ! in_array( $current_caption_model, array_column( $caption_models, 'id' ), true ) ) {
+			array_unshift( $caption_models, array( 'id' => $current_caption_model, 'name' => $current_caption_model, 'price_label' => '' ) );
+		}
 		$status = isset( $_GET['ntci_status'] ) ? sanitize_key( wp_unslash( $_GET['ntci_status'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$error = isset( $_GET['ntci_error'] ) ? sanitize_text_field( wp_unslash( $_GET['ntci_error'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		$connect_url = wp_nonce_url( admin_url( 'admin-post.php?action=nt_content_images_canva_connect' ), 'nt_content_images_canva_connect' );
@@ -197,7 +208,19 @@ final class NT_Content_Images_Generation_Admin {
 						<label><span><?php echo esc_html__( 'Giới hạn Cloudflare/ngày', 'nt-tao-anh-noi-dung-wordpress' ); ?></span><input type="number" min="1" max="500" name="generation_settings[cloudflare_daily_limit]" value="<?php echo esc_attr( (string) $config['cloudflare_daily_limit'] ); ?>"></label>
 						<label><span><?php echo esc_html__( 'Giới hạn tổng ảnh AI/ngày', 'nt-tao-anh-noi-dung-wordpress' ); ?></span><input type="number" min="1" max="1000" name="generation_settings[daily_limit]" value="<?php echo esc_attr( (string) $config['daily_limit'] ); ?>"><small><?php echo esc_html( sprintf( /* translators: %d: images generated today. */ __( 'Hôm nay đã tạo %d ảnh. Áp dụng cho mọi provider, gồm cả chạy hàng loạt.', 'nt-tao-anh-noi-dung-wordpress' ), NT_Content_Images_Usage_Tracker::get_today()['total'] ) ); ?></small></label>
 						<label><span><?php echo esc_html__( 'Timeout giây', 'nt-tao-anh-noi-dung-wordpress' ); ?></span><input type="number" min="60" max="300" name="generation_settings[timeout]" value="<?php echo esc_attr( (string) $config['timeout'] ); ?>"></label>
-						<label><span><?php echo esc_html__( 'Model soạn alt/caption', 'nt-tao-anh-noi-dung-wordpress' ); ?></span><input type="text" name="generation_settings[caption_model]" value="<?php echo esc_attr( (string) $config['caption_model'] ); ?>" placeholder="google/gemini-2.5-flash-lite"><small><?php echo esc_html__( 'Model văn bản giá rẻ trên OpenRouter, dùng chung API key OpenRouter.', 'nt-tao-anh-noi-dung-wordpress' ); ?></small></label>
+						<label><span><?php echo esc_html__( 'Model soạn alt/caption', 'nt-tao-anh-noi-dung-wordpress' ); ?></span>
+							<?php if ( array() !== $caption_models ) : ?>
+								<select id="ntci-caption-model-select" name="generation_settings[caption_model]">
+									<?php foreach ( $caption_models as $model ) : ?>
+										<option value="<?php echo esc_attr( (string) $model['id'] ); ?>" <?php selected( $current_caption_model, $model['id'] ); ?>><?php echo esc_html( (string) $model['name'] ); ?> — <?php echo esc_html( (string) $model['id'] ); ?><?php echo '' !== (string) ( $model['price_label'] ?? '' ) ? esc_html( ' · ' . $model['price_label'] ) : ''; ?></option>
+									<?php endforeach; ?>
+								</select>
+								<small><?php echo esc_html( sprintf( /* translators: %d: model count. */ __( 'Đã tải %d model văn bản từ OpenRouter (giá input mỗi 1 triệu token, cache 15 phút). Nên chọn model rẻ: alt/caption chỉ cần vài trăm token.', 'nt-tao-anh-noi-dung-wordpress' ), count( $caption_models ) ) ); ?></small>
+							<?php else : ?>
+								<input type="text" name="generation_settings[caption_model]" value="<?php echo esc_attr( $current_caption_model ); ?>" placeholder="google/gemini-2.5-flash-lite">
+								<small><?php echo esc_html__( 'Lưu API key OpenRouter rồi tải lại trang để chọn model từ danh sách đầy đủ.', 'nt-tao-anh-noi-dung-wordpress' ); ?></small>
+							<?php endif; ?>
+						</label>
 					</div>
 					<?php if ( 'database' === $config['providers']['cloudflare']['key_source'] ) : ?><label><input type="checkbox" name="generation_settings[clear_cloudflare_api_key]" value="1"> <?php echo esc_html__( 'Xóa Cloudflare token trong database', 'nt-tao-anh-noi-dung-wordpress' ); ?></label><br><?php endif; ?>
 					<?php if ( 'database' === $config['providers']['fal']['key_source'] ) : ?><label><input type="checkbox" name="generation_settings[clear_fal_api_key]" value="1"> <?php echo esc_html__( 'Xóa fal.ai key trong database', 'nt-tao-anh-noi-dung-wordpress' ); ?></label><br><?php endif; ?>
