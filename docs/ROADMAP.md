@@ -108,6 +108,8 @@ Mục tiêu: repository có cấu trúc rõ ràng, plugin kích hoạt an toàn 
 - [x] GD/FreeType renderer (thay cho phương án SVG/Imagick ban đầu).
 - [x] Logo thật, website, nhãn chuyên mục và font được cấp phép (Be Vietnam Pro, SIL OFL).
 - [x] 5 template đầu tiên: bottom_gradient, left_panel, top_band, center_box, minimal_badge.
+- [x] Thêm 4 bố cục: top_gradient, right_panel, bottom_bar, corner_card — tổng 9 (0.15.0).
+- [x] Chế độ trộn bố cục: luân phiên xác định theo (bài + vị trí ảnh), pool tùy chọn (0.15.0).
 - [x] Xem thử không lưu và chèn chữ thành ảnh mới chờ duyệt.
 - [x] Filter mở rộng template, font và dữ liệu overlay.
 - [ ] Runtime QA trên LocalWP theo checklist PHASE-6.

@@ -9,18 +9,64 @@ final class TemplateOverlayTest extends TestCase {
 		$GLOBALS['ntci_test_options'] = array();
 	}
 
-	public function test_registry_ships_five_supported_templates(): void {
+	public function test_registry_ships_nine_supported_templates(): void {
 		$registry  = new NT_Content_Images_Template_Registry();
 		$templates = $registry->get_all();
 
-		self::assertCount( 5, $templates );
+		self::assertCount( 9, $templates );
 		self::assertArrayHasKey( NT_Content_Images_Template_Registry::DEFAULT_TEMPLATE, $templates );
+		foreach ( array( 'top_gradient', 'right_panel', 'bottom_bar', 'corner_card' ) as $new_id ) {
+			self::assertArrayHasKey( $new_id, $templates );
+			self::assertTrue( $templates[ $new_id ]['shows_title'] );
+		}
 		foreach ( $templates as $template ) {
 			self::assertContains( $template['layout'], NT_Content_Images_Template_Registry::SUPPORTED_LAYOUTS );
 			self::assertNotSame( '', $template['label'] );
 		}
 		self::assertFalse( $templates['minimal_badge']['shows_title'] );
 		self::assertTrue( $templates['bottom_gradient']['shows_title'] );
+	}
+
+	public function test_mix_mode_rotates_templates_per_slot_and_post(): void {
+		$pool = array( 'a/one', 'b/two', 'c/three' );
+
+		// Cùng bài: các slot khác nhau ra mẫu khác nhau.
+		$featured = NT_Content_Images_Template_Settings::pick_from_pool( $pool, 100, 0 );
+		$slot1    = NT_Content_Images_Template_Settings::pick_from_pool( $pool, 100, 1 );
+		$slot2    = NT_Content_Images_Template_Settings::pick_from_pool( $pool, 100, 2 );
+		self::assertCount( 3, array_unique( array( $featured, $slot1, $slot2 ) ) );
+
+		// Bài kế nhau dịch vòng: featured của post 101 khác post 100.
+		self::assertNotSame( $featured, NT_Content_Images_Template_Settings::pick_from_pool( $pool, 101, 0 ) );
+
+		// Deterministic: gọi lại vẫn ra đúng mẫu cũ.
+		self::assertSame( $featured, NT_Content_Images_Template_Settings::pick_from_pool( $pool, 100, 0 ) );
+
+		// Pool rỗng rơi về mẫu mặc định.
+		self::assertSame( NT_Content_Images_Template_Registry::DEFAULT_TEMPLATE, NT_Content_Images_Template_Settings::pick_from_pool( array(), 100, 0 ) );
+	}
+
+	public function test_settings_mix_mode_and_pool_sanitized(): void {
+		$settings = new NT_Content_Images_Template_Settings( new NT_Content_Images_Template_Registry() );
+
+		// Mặc định: fixed, pool = 8 mẫu có tiêu đề (không gồm minimal_badge).
+		$config = $settings->get();
+		self::assertSame( 'fixed', $config['template_mode'] );
+		self::assertCount( 8, $config['mix_templates'] );
+		self::assertNotContains( 'minimal_badge', $config['mix_templates'] );
+
+		$saved = $settings->save(
+			array(
+				'default_template' => 'bottom_gradient',
+				'template_mode'    => 'mix',
+				'mix_templates'    => array( 'corner_card', 'left_panel', 'khong_ton_tai', 'corner_card' ),
+			)
+		);
+		self::assertSame( 'mix', $saved['template_mode'] );
+		self::assertSame( array( 'corner_card', 'left_panel' ), $saved['mix_templates'] );
+
+		// pick_template dùng đúng pool đã lưu.
+		self::assertContains( $settings->pick_template( 7, 0, false ), array( 'corner_card', 'left_panel' ) );
 	}
 
 	public function test_registry_public_shape_has_no_layout_internals(): void {

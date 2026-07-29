@@ -80,6 +80,18 @@ final class NT_Content_Images_Overlay_Renderer {
 			case 'minimal_badge':
 				$this->draw_minimal_badge( $canvas, $width, $height, $content );
 				break;
+			case 'top_gradient':
+				$this->draw_top_gradient( $canvas, $width, $height, $content );
+				break;
+			case 'right_panel':
+				$this->draw_right_panel( $canvas, $width, $height, $content );
+				break;
+			case 'bottom_bar':
+				$this->draw_bottom_bar( $canvas, $width, $height, $content );
+				break;
+			case 'corner_card':
+				$this->draw_corner_card( $canvas, $width, $height, $content );
+				break;
 			case 'bottom_gradient':
 			default:
 				$this->draw_bottom_gradient( $canvas, $width, $height, $content );
@@ -500,6 +512,132 @@ final class NT_Content_Images_Overlay_Renderer {
 			$size = 15;
 			$w    = $this->text_width( $fonts['regular'], $size, $host );
 			imagettftext( $canvas, $size, 0, $box_x + (int) round( ( $box_w - $w ) / 2 ), $cursor_y + $size, $this->color( $canvas, array( 255, 255, 255 ), 25 ), $fonts['regular'], $host );
+		}
+	}
+
+	/** Layout 6: dark gradient across the top, title dưới badge, brand phía phải. */
+	private function draw_top_gradient( $canvas, int $width, int $height, array $content ): void {
+		$fonts  = $this->get_fonts();
+		$margin = (int) round( $width * 0.05 );
+		$this->draw_vertical_gradient( $canvas, $width, 0, (int) round( $height * 0.58 ), self::NEUTRAL_DARK, 12, 127 );
+
+		$badge = $this->draw_badge( $canvas, $content, $margin, $margin );
+		$this->draw_brand_line( $canvas, $content, 0, $margin + 24, 15, true, $width - $margin );
+
+		if ( '' !== $content['title'] ) {
+			$title_top   = $margin + ( $badge['h'] > 0 ? $badge['h'] + 24 : 10 );
+			$fit         = $this->fit_title( $fonts['bold'], $content['title'], $width - 2 * $margin, 3, 42, 28 );
+			$line_height = (int) round( $fit['size'] * 1.4 );
+			$this->draw_title_lines( $canvas, $fit['lines'], $fit['size'], $fonts['bold'], $margin, $title_top, $line_height, $this->color( $canvas, array( 255, 255, 255 ) ) );
+		}
+	}
+
+	/** Layout 7: brand-colored panel bên phải (đảo của left_panel). */
+	private function draw_right_panel( $canvas, int $width, int $height, array $content ): void {
+		$fonts   = $this->get_fonts();
+		$margin  = (int) round( $width * 0.05 );
+		$panel_w = (int) round( $width * 0.46 );
+		$panel_x = $width - $panel_w;
+		imagefilledrectangle( $canvas, $panel_x, 0, $width, $height, $this->color( $canvas, $content['primary'], 18 ) );
+		imagefilledrectangle( $canvas, $panel_x - 6, 0, $panel_x, $height, $this->color( $canvas, $content['secondary'], 8 ) );
+
+		$text_x = $panel_x + (int) round( $margin * 0.7 );
+		$badge  = $this->draw_badge( $canvas, $content, $text_x, $margin );
+		if ( '' !== $content['title'] ) {
+			$max_w       = $width - $text_x - $margin;
+			$fit         = $this->fit_title( $fonts['bold'], $content['title'], $max_w, 5, 40, 26 );
+			$line_height = (int) round( $fit['size'] * 1.42 );
+			$title_h     = count( $fit['lines'] ) * $line_height;
+			$title_top   = max( $margin + $badge['h'] + 30, (int) round( ( $height - $title_h ) / 2 ) );
+			$this->draw_title_lines( $canvas, $fit['lines'], $fit['size'], $fonts['bold'], $text_x, $title_top, $line_height, $this->color( $canvas, array( 255, 255, 255 ) ) );
+		}
+		// Panel hẹp hơn canvas: bỏ bớt host rồi thu nhỏ chữ khi dòng thương hiệu quá dài để không tràn mép phải.
+		$avail = $width - $text_x - (int) round( $margin * 0.4 );
+		$size  = 15;
+		$brand = $content;
+		$full  = $this->text_width( $fonts['semibold'], $size, $content['brand_name'] ) + $this->text_width( $fonts['regular'], $size, $content['website_host'] ) + 70;
+		if ( $full > $avail ) {
+			$brand['website_host'] = '';
+			if ( $this->text_width( $fonts['semibold'], $size, $content['brand_name'] ) + 50 > $avail ) {
+				$size = 13;
+			}
+		}
+		$this->draw_brand_line( $canvas, $brand, $text_x, $height - (int) round( $margin * 0.55 ), $size );
+	}
+
+	/** Layout 8: thanh màu thương hiệu đặc phía dưới, chữ nằm trên thanh. */
+	private function draw_bottom_bar( $canvas, int $width, int $height, array $content ): void {
+		$fonts  = $this->get_fonts();
+		$margin = (int) round( $width * 0.05 );
+		$pad    = 26;
+
+		$fit         = array( 'size' => 0, 'lines' => array() );
+		$line_height = 0;
+		$title_h     = 0;
+		if ( '' !== $content['title'] ) {
+			$fit         = $this->fit_title( $fonts['bold'], $content['title'], $width - 2 * $margin, 2, 36, 24 );
+			$line_height = (int) round( $fit['size'] * 1.38 );
+			$title_h     = count( $fit['lines'] ) * $line_height;
+		}
+		$brand_h = '' !== $content['brand_name'] || '' !== $content['website_host'] || '' !== $content['logo_file'] ? 30 : 0;
+		$bar_h   = $pad * 2 + $title_h + ( $brand_h > 0 ? $brand_h + 8 : 0 );
+		$bar_top = $height - $bar_h;
+		imagefilledrectangle( $canvas, 0, $bar_top, $width, $height, $this->color( $canvas, $content['primary'], 4 ) );
+		imagefilledrectangle( $canvas, 0, $bar_top - 5, $width, $bar_top, $this->color( $canvas, $content['secondary'], 6 ) );
+
+		// Badge ngồi vắt lên mép trên của thanh.
+		if ( '' !== $content['badge'] ) {
+			$this->draw_badge( $canvas, $content, $margin, $bar_top - 48 );
+		}
+
+		$text_rgb = self::pick_text_color( $content['primary'] );
+		$cursor_y = $bar_top + $pad;
+		if ( array() !== $fit['lines'] ) {
+			$this->draw_title_lines( $canvas, $fit['lines'], $fit['size'], $fonts['bold'], $margin, $cursor_y, $line_height, $this->color( $canvas, $text_rgb ) );
+			$cursor_y += $title_h + 8;
+		}
+		if ( $brand_h > 0 ) {
+			// Vẽ brand thủ công theo màu tương phản với thanh (draw_brand_line luôn dùng chữ trắng).
+			$host  = '' !== $content['brand_name'] ? $content['brand_name'] : $content['website_host'];
+			$extra = '' !== $content['brand_name'] && '' !== $content['website_host'] ? '  ·  ' . $content['website_host'] : '';
+			imagettftext( $canvas, 14, 0, $margin, $cursor_y + 14, $this->color( $canvas, $text_rgb, 30 ), $fonts['semibold'], $host . $extra );
+		}
+	}
+
+	/** Layout 9: thẻ bo góc nổi ở góc dưới-trái (lower third card). */
+	private function draw_corner_card( $canvas, int $width, int $height, array $content ): void {
+		$fonts  = $this->get_fonts();
+		$margin = (int) round( $width * 0.05 );
+		$card_w = (int) round( $width * 0.62 );
+		$pad    = 28;
+
+		$fit         = array( 'size' => 0, 'lines' => array() );
+		$line_height = 0;
+		$title_h     = 0;
+		if ( '' !== $content['title'] ) {
+			$fit         = $this->fit_title( $fonts['bold'], $content['title'], $card_w - 2 * $pad, 3, 34, 24 );
+			$line_height = (int) round( $fit['size'] * 1.4 );
+			$title_h     = count( $fit['lines'] ) * $line_height;
+		}
+		$badge_h = '' !== $content['badge'] ? 33 : 0;
+		$brand_h = '' !== $content['brand_name'] || '' !== $content['website_host'] || '' !== $content['logo_file'] ? 32 : 0;
+		$card_h  = $pad * 2 + $badge_h + ( $badge_h > 0 ? 18 : 0 ) + $title_h + ( $brand_h > 0 ? 16 : 0 ) + $brand_h;
+		$card_x  = $margin;
+		$card_y  = $height - $margin - $card_h;
+		$this->draw_rounded_rect( $canvas, $card_x, $card_y, $card_w, $card_h, 16, self::NEUTRAL_DARK, 22 );
+		imagefilledrectangle( $canvas, $card_x, $card_y + 16, $card_x + 5, $card_y + $card_h - 16, $this->color( $canvas, $content['secondary'], 6 ) );
+
+		$cursor_y = $card_y + $pad;
+		if ( $badge_h > 0 ) {
+			$this->draw_badge( $canvas, $content, $card_x + $pad, $cursor_y );
+			$cursor_y += $badge_h + 18;
+		}
+		if ( array() !== $fit['lines'] ) {
+			$this->draw_title_lines( $canvas, $fit['lines'], $fit['size'], $fonts['bold'], $card_x + $pad, $cursor_y, $line_height, $this->color( $canvas, array( 255, 255, 255 ) ) );
+			$cursor_y += $title_h + 16;
+		}
+		if ( $brand_h > 0 ) {
+			$this->draw_brand_line( $canvas, $content, $card_x + $pad, $cursor_y + 20, 14 );
 		}
 	}
 

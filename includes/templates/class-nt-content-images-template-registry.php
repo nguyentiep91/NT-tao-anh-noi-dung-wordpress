@@ -13,7 +13,7 @@ final class NT_Content_Images_Template_Registry {
 	public const DEFAULT_TEMPLATE = 'bottom_gradient';
 
 	/** Layouts the renderer knows how to draw. */
-	public const SUPPORTED_LAYOUTS = array( 'bottom_gradient', 'left_panel', 'top_band', 'center_box', 'minimal_badge' );
+	public const SUPPORTED_LAYOUTS = array( 'bottom_gradient', 'left_panel', 'top_band', 'center_box', 'minimal_badge', 'top_gradient', 'right_panel', 'bottom_bar', 'corner_card' );
 
 	/** @return array<string, array<string, mixed>> */
 	public function get_all(): array {
@@ -52,6 +52,34 @@ final class NT_Content_Images_Template_Registry {
 				'description' => __( 'Chỉ gắn nhãn chuyên mục và thương hiệu ở góc, giữ ảnh tự nhiên nhất. Phù hợp ảnh minh hoạ trong nội dung.', 'nt-tao-anh-noi-dung-wordpress' ),
 				'layout'      => 'minimal_badge',
 				'shows_title' => false,
+			),
+			'top_gradient' => array(
+				'id'          => 'top_gradient',
+				'label'       => __( 'Dải tối phía trên', 'nt-tao-anh-noi-dung-wordpress' ),
+				'description' => __( 'Chuyển sắc tối ở phần trên ảnh, tiêu đề nằm trên cao, thương hiệu góc phải. Hợp ảnh có chi tiết chính ở nửa dưới.', 'nt-tao-anh-noi-dung-wordpress' ),
+				'layout'      => 'top_gradient',
+				'shows_title' => true,
+			),
+			'right_panel' => array(
+				'id'          => 'right_panel',
+				'label'       => __( 'Khối màu bên phải', 'nt-tao-anh-noi-dung-wordpress' ),
+				'description' => __( 'Panel màu thương hiệu phủ nửa phải ảnh, tiêu đề lớn dễ đọc. Đảo chiều của khối bên trái để tránh lặp.', 'nt-tao-anh-noi-dung-wordpress' ),
+				'layout'      => 'right_panel',
+				'shows_title' => true,
+			),
+			'bottom_bar' => array(
+				'id'          => 'bottom_bar',
+				'label'       => __( 'Thanh màu phía dưới', 'nt-tao-anh-noi-dung-wordpress' ),
+				'description' => __( 'Thanh màu thương hiệu đặc ở đáy ảnh chứa tiêu đề, nhãn chuyên mục vắt lên mép thanh. Kiểu báo chí gọn gàng.', 'nt-tao-anh-noi-dung-wordpress' ),
+				'layout'      => 'bottom_bar',
+				'shows_title' => true,
+			),
+			'corner_card' => array(
+				'id'          => 'corner_card',
+				'label'       => __( 'Thẻ nổi góc dưới', 'nt-tao-anh-noi-dung-wordpress' ),
+				'description' => __( 'Thẻ bo góc nổi ở góc dưới-trái kiểu lower-third truyền hình, có vạch màu nhấn. Giữ được nhiều phần ảnh gốc.', 'nt-tao-anh-noi-dung-wordpress' ),
+				'layout'      => 'corner_card',
+				'shows_title' => true,
 			),
 		);
 

@@ -199,10 +199,11 @@ final class NT_Content_Images_Overlay_Service {
 
 		$template_id = sanitize_key( $template_id );
 		if ( '' === $template_id ) {
-			$defaults    = $this->settings->get();
-			$template_id = 'content' === (string) ( $item['settings']['image_type'] ?? '' )
-				? (string) $defaults['content_template']
-				: (string) $defaults['default_template'];
+			// Chế độ mix: mẫu luân phiên theo (post_id + slot) để các ảnh trong cùng
+			// bài và các bài kế nhau không trùng bố cục; chế độ fixed giữ mẫu cấu hình.
+			$is_content  = 'content' === (string) ( $item['settings']['image_type'] ?? '' );
+			$slot        = $is_content ? max( 1, absint( $item['settings']['image_index'] ?? 1 ) ) : 0;
+			$template_id = $this->settings->pick_template( absint( $item['post_id'] ), $slot, $is_content );
 		}
 		$template = $this->registry->get( $template_id );
 		if ( null === $template ) {
