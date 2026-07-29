@@ -15,7 +15,7 @@ Plugin WordPress hỗ trợ phân tích nội dung bài viết, tạo hình ản
 1. Quét bài viết WordPress để xác định bài thiếu ảnh đại diện hoặc ảnh trong nội dung.
 2. Phân tích tiêu đề, chuyên mục, từ khóa, đoạn mở đầu và heading để tạo `image brief`.
 3. Kết nối nhà cung cấp AI tạo ảnh thông qua API.
-4. Tối ưu kích thước, định dạng WebP, tên tệp, alt text và metadata.
+4. Tối ưu kích thước, định dạng WebP, tên tệp, alt text và metadata; Media Library chỉ giữ ảnh thật sự dùng (tự dọn ảnh trung gian, chống trùng lặp).
 5. Chèn chữ, logo và nhận diện thương hiệu bằng template nội bộ; Canva là tích hợp tùy chọn.
 6. Cho phép tạo nháp, duyệt, tạo lại, chèn ảnh và hoàn tác.
 7. Theo dõi nhật ký, lỗi và chi phí API.
@@ -72,9 +72,11 @@ Database prefix: nt_content_images_
 - [ ] Kiểm tra kích hoạt trên môi trường WordPress thử nghiệm.
 - [ ] Xây module audit bài viết ở chế độ chỉ đọc.
 - [ ] Xây hàng đợi xử lý và workflow duyệt.
-- [ ] Tích hợp nhà cung cấp AI đầu tiên.
-- [ ] Xây template chèn chữ/logo.
-- [ ] Bổ sung Canva tùy chọn.
+- [x] Tích hợp nhà cung cấp AI đầu tiên (OpenAI, OpenRouter, Cloudflare, fal.ai).
+- [x] Xây template chèn chữ/logo (5 mẫu GD/FreeType, font Be Vietnam Pro).
+- [x] Bổ sung Canva tùy chọn.
+- [ ] Queue/batch generation và cost tracking.
+- [ ] Chèn ảnh vào nội dung bài và hoàn tác.
 
 ## Tài liệu
 
