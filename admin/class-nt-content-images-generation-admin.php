@@ -272,9 +272,22 @@ final class NT_Content_Images_Generation_Admin {
 					<?php wp_nonce_field( 'nt_content_images_save_template_settings' ); ?>
 					<p style="margin:8px 0 4px;"><strong><?php echo esc_html__( 'Cách chọn bố cục khi chèn chữ tự động:', 'nt-tao-anh-noi-dung-wordpress' ); ?></strong></p>
 					<p style="margin:4px 0 10px;">
-						<label style="margin-right:18px;"><input type="radio" name="template_settings[template_mode]" value="fixed" <?php checked( 'mix' !== (string) $overlay['settings']['template_mode'] ); ?>> <?php echo esc_html__( 'Một mẫu cố định', 'nt-tao-anh-noi-dung-wordpress' ); ?></label>
-						<label><input type="radio" name="template_settings[template_mode]" value="mix" <?php checked( 'mix' === (string) $overlay['settings']['template_mode'] ); ?>> <strong><?php echo esc_html__( 'Trộn nhiều bố cục', 'nt-tao-anh-noi-dung-wordpress' ); ?></strong> — <?php echo esc_html__( 'mỗi ảnh trong bài một bố cục khác nhau, các bài kế nhau tự đổi kiểu, tạo lại ảnh vẫn giữ đúng bố cục cũ.', 'nt-tao-anh-noi-dung-wordpress' ); ?></label>
+						<label style="margin-right:18px;"><input type="radio" name="template_settings[template_mode]" value="fixed" <?php checked( 'fixed' === (string) $overlay['settings']['template_mode'] ); ?>> <?php echo esc_html__( 'Một mẫu cố định', 'nt-tao-anh-noi-dung-wordpress' ); ?></label>
+						<label style="margin-right:18px;"><input type="radio" name="template_settings[template_mode]" value="mix" <?php checked( 'mix' === (string) $overlay['settings']['template_mode'] ); ?>> <strong><?php echo esc_html__( 'Trộn nhiều bố cục', 'nt-tao-anh-noi-dung-wordpress' ); ?></strong></label>
+						<label><input type="radio" name="template_settings[template_mode]" value="smart" <?php checked( 'smart' === (string) $overlay['settings']['template_mode'] ); ?>> <strong><?php echo esc_html__( 'Smart Template Pack theo lĩnh vực', 'nt-tao-anh-noi-dung-wordpress' ); ?></strong> — <?php echo esc_html__( 'tự chọn nhóm bố cục phù hợp Site Profile/Rule Pack và luân phiên ổn định theo từng ảnh.', 'nt-tao-anh-noi-dung-wordpress' ); ?></label>
 					</p>
+					<div class="ntci-generation-grid">
+						<label>
+							<span><?php echo esc_html__( 'Template Pack dùng trong chế độ Smart', 'nt-tao-anh-noi-dung-wordpress' ); ?></span>
+							<select name="template_settings[template_pack]">
+								<option value="auto" <?php selected( 'auto', (string) $overlay['settings']['template_pack'] ); ?>><?php echo esc_html__( 'Tự động theo hồ sơ website', 'nt-tao-anh-noi-dung-wordpress' ); ?></option>
+								<?php foreach ( (array) $overlay['template_packs'] as $pack ) : ?>
+									<option value="<?php echo esc_attr( (string) $pack['id'] ); ?>" <?php selected( (string) $overlay['settings']['template_pack'], (string) $pack['id'] ); ?>><?php echo esc_html( (string) $pack['label'] ); ?></option>
+								<?php endforeach; ?>
+							</select>
+							<small><?php echo esc_html( sprintf( __( 'Pack đang được nhận diện: %s. Chọn một pack cụ thể nếu muốn ép phong cách cho website này.', 'nt-tao-anh-noi-dung-wordpress' ), (string) $overlay['active_pack_label'] ) ); ?></small>
+						</label>
+					</div>
 					<div class="ntci-generation-grid">
 						<label><span><?php echo esc_html__( 'Mẫu cho ảnh đại diện (chế độ cố định)', 'nt-tao-anh-noi-dung-wordpress' ); ?></span><select name="template_settings[default_template]"><?php foreach ( $overlay['templates'] as $template ) : ?><option value="<?php echo esc_attr( (string) $template['id'] ); ?>" <?php selected( $overlay['settings']['default_template'], $template['id'] ); ?>><?php echo esc_html( (string) $template['label'] ); ?></option><?php endforeach; ?></select></label>
 						<label><span><?php echo esc_html__( 'Mẫu cho ảnh trong bài (chế độ cố định)', 'nt-tao-anh-noi-dung-wordpress' ); ?></span><select name="template_settings[content_template]"><?php foreach ( $overlay['templates'] as $template ) : ?><option value="<?php echo esc_attr( (string) $template['id'] ); ?>" <?php selected( $overlay['settings']['content_template'], $template['id'] ); ?>><?php echo esc_html( (string) $template['label'] ); ?></option><?php endforeach; ?></select><small><?php echo esc_html__( 'Chữ trên ảnh trong bài là tên mục (H2) tương ứng, không phải tiêu đề bài.', 'nt-tao-anh-noi-dung-wordpress' ); ?></small></label>
@@ -292,6 +305,12 @@ final class NT_Content_Images_Generation_Admin {
 					<ul class="ntci-template-list">
 						<?php foreach ( $overlay['templates'] as $template ) : ?>
 							<li><strong><?php echo esc_html( (string) $template['label'] ); ?></strong> — <?php echo esc_html( (string) $template['description'] ); ?></li>
+						<?php endforeach; ?>
+					</ul>
+					<p class="description"><?php echo esc_html__( 'Chế độ Smart dùng Template Pack riêng cho từng lĩnh vực; mỗi pack có pool ảnh đại diện và ảnh trong bài khác nhau. Chọn mẫu thủ công khi Xem thử/Chèn chữ vẫn luôn ghi đè lựa chọn tự động cho ảnh đó.', 'nt-tao-anh-noi-dung-wordpress' ); ?></p>
+					<ul class="ntci-template-list">
+						<?php foreach ( (array) $overlay['template_packs'] as $pack ) : ?>
+							<li><strong><?php echo esc_html( (string) $pack['label'] ); ?></strong> — <?php echo esc_html( (string) $pack['description'] ); ?></li>
 						<?php endforeach; ?>
 					</ul>
 					<p class="description"><?php echo esc_html__( 'Chọn mẫu và bấm Xem thử/Chèn chữ ngay trên từng ảnh trong danh sách “Ảnh đã tạo hoặc nhập” bên dưới. Bản chèn chữ được lưu thành ảnh mới chờ duyệt, không ghi đè ảnh gốc.', 'nt-tao-anh-noi-dung-wordpress' ); ?></p>
