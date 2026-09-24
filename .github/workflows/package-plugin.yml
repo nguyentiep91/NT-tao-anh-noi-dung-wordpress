@@ -1,0 +1,65 @@
+name: Build Installable Plugin ZIP
+
+on:
+  push:
+    branches:
+      - 'feature/template-renderer-content-images'
+    paths:
+      - '.github/workflows/package-plugin.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Read plugin version
+        id: version
+        shell: bash
+        run: |
+          VERSION=$(sed -n "s/^[[:space:]]*\*[[:space:]]*Version:[[:space:]]*//p" nt-tao-anh-noi-dung-wordpress.php | head -n1 | tr -d '\r')
+          test -n "$VERSION"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Build clean WordPress plugin package
+        shell: bash
+        run: |
+          set -euo pipefail
+          SLUG="nt-tao-anh-noi-dung-wordpress"
+          VERSION="${{ steps.version.outputs.version }}"
+          BUILD="$RUNNER_TEMP/$SLUG"
+
+          rm -rf "$BUILD"
+          mkdir -p "$BUILD"
+
+          rsync -a ./ "$BUILD/" \
+            --exclude='.git/' \
+            --exclude='.github/' \
+            --exclude='tests/' \
+            --exclude='docs/' \
+            --exclude='vendor/' \
+            --exclude='.gitignore' \
+            --exclude='composer.json' \
+            --exclude='composer.lock' \
+            --exclude='phpcs.xml.dist' \
+            --exclude='phpunit.xml.dist'
+
+          test -f "$BUILD/nt-tao-anh-noi-dung-wordpress.php"
+          grep -q "Version:[[:space:]]*$VERSION" "$BUILD/nt-tao-anh-noi-dung-wordpress.php"
+
+          cd "$RUNNER_TEMP"
+          zip -qr "$GITHUB_WORKSPACE/$SLUG-$VERSION.zip" "$SLUG"
+
+      - name: Upload installable ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: nt-tao-anh-noi-dung-wordpress-${{ steps.version.outputs.version }}
+          path: nt-tao-anh-noi-dung-wordpress-${{ steps.version.outputs.version }}.zip
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 0

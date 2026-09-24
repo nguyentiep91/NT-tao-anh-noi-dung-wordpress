@@ -5,10 +5,14 @@ on:
     branches:
       - main
       - develop
+      - 'feature/**'
+      - 'fix/**'
   pull_request:
     branches:
       - main
       - develop
+      - 'feature/**'
+      - 'fix/**'
 
 permissions:
   contents: read
@@ -44,6 +48,9 @@ jobs:
 
       - name: Check PHP syntax
         run: find . -path './vendor' -prune -o -name '*.php' -print0 | xargs -0 -n1 php -l
+
+      - name: Run unit tests with WordPress HTTP mocks
+        run: composer test
 
       - name: Run coding standards (advisory during scaffold phase)
         continue-on-error: true
