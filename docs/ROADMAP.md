@@ -114,7 +114,7 @@ Mục tiêu: repository có cấu trúc rõ ràng, plugin kích hoạt an toàn 
 - [x] Xem thử không lưu và chèn chữ thành ảnh mới chờ duyệt.
 - [x] Filter mở rộng template, font và dữ liệu overlay.
 - [ ] Runtime QA trên LocalWP theo checklist PHASE-6.
-- [ ] Template pack theo lĩnh vực và tự chọn mẫu theo nhóm nội dung.
+- [x] Template Pack theo website/lĩnh vực (0.17.0): 9 pack Corporate, Education, Real Estate, Certification, Legal, News/Editorial, Technology, Minimal, Luxury; chế độ Smart tự nhận diện từ Site Profile + Rule Pack + Brand template_family, pool riêng cho featured/content, hỗ trợ ép pack thủ công và filter mở rộng.
 
 ## Phase 7 — Chèn ảnh và hoàn tác
 

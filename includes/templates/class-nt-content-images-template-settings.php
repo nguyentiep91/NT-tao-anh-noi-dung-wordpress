@@ -13,9 +13,11 @@ final class NT_Content_Images_Template_Settings {
 	private const OPTION = 'nt_content_images_template_settings';
 
 	private NT_Content_Images_Template_Registry $registry;
+	private NT_Content_Images_Template_Pack_Registry $pack_registry;
 
-	public function __construct( NT_Content_Images_Template_Registry $registry ) {
+	public function __construct( NT_Content_Images_Template_Registry $registry, ?NT_Content_Images_Template_Pack_Registry $pack_registry = null ) {
 		$this->registry = $registry;
+		$this->pack_registry = $pack_registry ?? new NT_Content_Images_Template_Pack_Registry( $registry );
 	}
 
 	/** @return array<string, mixed> */
@@ -30,55 +32,66 @@ final class NT_Content_Images_Template_Settings {
 		if ( ! $this->registry->exists( $content_template ) ) {
 			$content_template = NT_Content_Images_Template_Registry::DEFAULT_TEMPLATE;
 		}
+		$template_mode = sanitize_key( (string) ( $raw['template_mode'] ?? 'fixed' ) );
+		if ( ! in_array( $template_mode, array( 'fixed', 'mix', 'smart' ), true ) ) {
+			$template_mode = 'fixed';
+		}
+		$template_pack = sanitize_key( (string) ( $raw['template_pack'] ?? 'auto' ) );
+		if ( 'auto' !== $template_pack && ! $this->pack_registry->exists( $template_pack ) ) {
+			$template_pack = 'auto';
+		}
 		$has_payload = array() !== $raw;
 		return array(
 			'default_template' => $default_template,
 			'content_template' => $content_template,
-			'template_mode'    => 'mix' === sanitize_key( (string) ( $raw['template_mode'] ?? 'fixed' ) ) ? 'mix' : 'fixed',
-			'mix_templates'    => $this->sanitize_pool( $raw['mix_templates'] ?? null ),
-			'show_category'    => $has_payload ? ! empty( $raw['show_category'] ) : true,
-			'show_site_name'   => $has_payload ? ! empty( $raw['show_site_name'] ) : true,
-			'show_logo'        => $has_payload ? ! empty( $raw['show_logo'] ) : true,
-			'auto_overlay'     => $has_payload ? ! empty( $raw['auto_overlay'] ) : true,
+			'template_mode' => $template_mode,
+			'template_pack' => $template_pack,
+			'mix_templates' => $this->sanitize_pool( $raw['mix_templates'] ?? null ),
+			'show_category' => $has_payload ? ! empty( $raw['show_category'] ) : true,
+			'show_site_name' => $has_payload ? ! empty( $raw['show_site_name'] ) : true,
+			'show_logo' => $has_payload ? ! empty( $raw['show_logo'] ) : true,
+			'auto_overlay' => $has_payload ? ! empty( $raw['auto_overlay'] ) : true,
 		);
 	}
 
-	/**
-	 * Picks the overlay template for one image slot.
-	 *
-	 * Chế độ mix chọn luân phiên xác định (không random): các slot trong cùng
-	 * bài dùng mẫu khác nhau, các bài kế nhau dịch vòng theo post_id — tạo lại
-	 * ảnh cùng slot vẫn ra đúng mẫu cũ.
-	 *
-	 * @param int $post_id Post owning the image.
-	 * @param int $slot    0 = featured, 1..N = content image index.
-	 */
-	public function pick_template( int $post_id, int $slot, bool $is_content ): string {
+	/** @param array<string, mixed> $site_profile @param array<string, mixed> $brand_profile */
+	public function pick_template( int $post_id, int $slot, bool $is_content, array $site_profile = array(), array $brand_profile = array() ): string {
 		$settings = $this->get();
+		if ( 'smart' === (string) $settings['template_mode'] ) {
+			$pack_id = $this->pack_registry->resolve( $site_profile, $brand_profile, (string) $settings['template_pack'] );
+			return self::pick_from_pool( $this->pack_registry->get_pool( $pack_id, $is_content ), $post_id, $slot );
+		}
 		if ( 'mix' !== (string) $settings['template_mode'] || array() === $settings['mix_templates'] ) {
 			return $is_content ? (string) $settings['content_template'] : (string) $settings['default_template'];
 		}
 		return self::pick_from_pool( $settings['mix_templates'], $post_id, $slot );
 	}
 
-	/**
-	 * Deterministic rotation: (post_id + slot) mod pool. Pure — unit tested.
-	 *
-	 * @param array<int, string> $pool Template ids joining the mix.
-	 */
+	/** @param array<int, string> $pool */
 	public static function pick_from_pool( array $pool, int $post_id, int $slot ): string {
 		$pool = array_values( array_filter( array_map( 'strval', $pool ) ) );
 		if ( array() === $pool ) {
 			return NT_Content_Images_Template_Registry::DEFAULT_TEMPLATE;
 		}
-		$index = ( absint( $post_id ) + absint( $slot ) ) % count( $pool );
-		return $pool[ $index ];
+		return $pool[ ( absint( $post_id ) + absint( $slot ) ) % count( $pool ) ];
 	}
 
-	/**
-	 * @param mixed $raw Raw pool value from option/form.
-	 * @return array<int, string> Valid template ids, defaults to every title-showing template.
-	 */
+	/** @param array<string, mixed> $site_profile @param array<string, mixed> $brand_profile */
+	public function resolve_pack( array $site_profile, array $brand_profile = array() ): string {
+		return $this->pack_registry->resolve( $site_profile, $brand_profile, (string) $this->get()['template_pack'] );
+	}
+
+	/** @return array<string, mixed>|null */
+	public function get_pack( string $id ): ?array {
+		return $this->pack_registry->get( $id );
+	}
+
+	/** @return array<int, array<string, mixed>> */
+	public function get_packs_public(): array {
+		return $this->pack_registry->get_public();
+	}
+
+	/** @param mixed $raw @return array<int, string> */
 	private function sanitize_pool( $raw ): array {
 		$all = $this->registry->get_all();
 		if ( is_array( $raw ) ) {
@@ -93,7 +106,6 @@ final class NT_Content_Images_Template_Settings {
 				return $pool;
 			}
 		}
-		// Mặc định: mọi mẫu có tiêu đề (minimal_badge không có chữ nên phải tự tick thêm).
 		$pool = array();
 		foreach ( $all as $template ) {
 			if ( ! empty( $template['shows_title'] ) ) {
@@ -118,17 +130,26 @@ final class NT_Content_Images_Template_Settings {
 		if ( ! $this->registry->exists( $content_template ) ) {
 			return new WP_Error( 'ntci_template_content_invalid', __( 'Mẫu chữ cho ảnh trong bài không hợp lệ.', 'nt-tao-anh-noi-dung-wordpress' ) );
 		}
+		$template_mode = sanitize_key( (string) ( $raw['template_mode'] ?? 'fixed' ) );
+		if ( ! in_array( $template_mode, array( 'fixed', 'mix', 'smart' ), true ) ) {
+			$template_mode = 'fixed';
+		}
+		$template_pack = sanitize_key( (string) ( $raw['template_pack'] ?? 'auto' ) );
+		if ( 'auto' !== $template_pack && ! $this->pack_registry->exists( $template_pack ) ) {
+			return new WP_Error( 'ntci_template_pack_invalid', __( 'Template Pack không hợp lệ.', 'nt-tao-anh-noi-dung-wordpress' ) );
+		}
 		update_option(
 			self::OPTION,
 			array(
 				'default_template' => $default_template,
 				'content_template' => $content_template,
-				'template_mode'    => 'mix' === sanitize_key( (string) ( $raw['template_mode'] ?? 'fixed' ) ) ? 'mix' : 'fixed',
-				'mix_templates'    => $this->sanitize_pool( $raw['mix_templates'] ?? null ),
-				'show_category'    => ! empty( $raw['show_category'] ),
-				'show_site_name'   => ! empty( $raw['show_site_name'] ),
-				'show_logo'        => ! empty( $raw['show_logo'] ),
-				'auto_overlay'     => ! empty( $raw['auto_overlay'] ),
+				'template_mode' => $template_mode,
+				'template_pack' => $template_pack,
+				'mix_templates' => $this->sanitize_pool( $raw['mix_templates'] ?? null ),
+				'show_category' => ! empty( $raw['show_category'] ),
+				'show_site_name' => ! empty( $raw['show_site_name'] ),
+				'show_logo' => ! empty( $raw['show_logo'] ),
+				'auto_overlay' => ! empty( $raw['auto_overlay'] ),
 			),
 			false
 		);

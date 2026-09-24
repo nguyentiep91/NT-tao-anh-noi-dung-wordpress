@@ -33,6 +33,7 @@ final class NT_Content_Images {
 	private ?NT_Content_Images_Content_Inserter $content_inserter = null;
 	private ?NT_Content_Images_Generation_Queue $generation_queue = null;
 	private ?NT_Content_Images_Template_Registry $template_registry = null;
+	private ?NT_Content_Images_Template_Pack_Registry $template_pack_registry = null;
 	private ?NT_Content_Images_Template_Settings $template_settings = null;
 	private ?NT_Content_Images_Overlay_Service $overlay_service = null;
 	private ?NT_Content_Images_Canva_Settings $canva_settings = null;
@@ -170,6 +171,7 @@ final class NT_Content_Images {
 	public function get_media_cleanup(): NT_Content_Images_Media_Cleanup { $this->initialize_generation_services(); return $this->media_cleanup; }
 	public function get_generation_queue(): NT_Content_Images_Generation_Queue { $this->initialize_generation_services(); return $this->generation_queue; }
 	public function get_template_registry(): NT_Content_Images_Template_Registry { $this->initialize_generation_services(); return $this->template_registry; }
+	public function get_template_pack_registry(): NT_Content_Images_Template_Pack_Registry { $this->initialize_generation_services(); return $this->template_pack_registry; }
 	public function get_template_settings(): NT_Content_Images_Template_Settings { $this->initialize_generation_services(); return $this->template_settings; }
 	public function get_overlay_service(): NT_Content_Images_Overlay_Service { $this->initialize_generation_services(); return $this->overlay_service; }
 	public function get_canva_settings(): NT_Content_Images_Canva_Settings { $this->initialize_generation_services(); return $this->canva_settings; }
@@ -240,7 +242,8 @@ final class NT_Content_Images {
 		$this->content_inserter = new NT_Content_Images_Content_Inserter( $this->generation_repository, new NT_Content_Images_Safe_Logger() );
 		$this->generation_queue = new NT_Content_Images_Generation_Queue( $this->featured_generator, $this->content_generator, $this->audit_repository, $this->profiles, $this->generation_settings, $this->generation_repository, $this->content_inserter );
 		$this->template_registry = new NT_Content_Images_Template_Registry();
-		$this->template_settings = new NT_Content_Images_Template_Settings( $this->template_registry );
+		$this->template_pack_registry = new NT_Content_Images_Template_Pack_Registry( $this->template_registry );
+		$this->template_settings = new NT_Content_Images_Template_Settings( $this->template_registry, $this->template_pack_registry );
 		$this->overlay_service = new NT_Content_Images_Overlay_Service(
 			$this->template_registry,
 			$this->template_settings,

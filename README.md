@@ -73,7 +73,8 @@ Database prefix: nt_content_images_
 - [ ] Xây module audit bài viết ở chế độ chỉ đọc.
 - [ ] Xây hàng đợi xử lý và workflow duyệt.
 - [x] Tích hợp nhà cung cấp AI đầu tiên (OpenAI, OpenRouter, Cloudflare, fal.ai).
-- [x] Xây template chèn chữ/logo (5 mẫu GD/FreeType, font Be Vietnam Pro).
+- [x] Xây template chèn chữ/logo (9 bố cục GD/FreeType, font Be Vietnam Pro).
+- [x] Template Pack theo website/lĩnh vực (0.17.0): 9 pack và chế độ Smart tự chọn theo Site Profile/Rule Pack.
 - [x] Bổ sung Canva tùy chọn.
 - [ ] Queue/batch generation và cost tracking.
 - [ ] Chèn ảnh vào nội dung bài và hoàn tác.

@@ -167,5 +167,6 @@ require_once dirname( __DIR__ ) . '/includes/media/class-nt-content-images-media
 require_once dirname( __DIR__ ) . '/includes/media/class-nt-content-images-media-cleanup.php';
 require_once dirname( __DIR__ ) . '/includes/insertion/class-nt-content-images-content-inserter.php';
 require_once dirname( __DIR__ ) . '/includes/templates/class-nt-content-images-template-registry.php';
+require_once dirname( __DIR__ ) . '/includes/templates/class-nt-content-images-template-pack-registry.php';
 require_once dirname( __DIR__ ) . '/includes/templates/class-nt-content-images-template-settings.php';
 require_once dirname( __DIR__ ) . '/includes/templates/class-nt-content-images-overlay-renderer.php';

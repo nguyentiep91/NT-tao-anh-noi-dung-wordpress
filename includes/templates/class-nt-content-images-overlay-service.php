@@ -64,8 +64,11 @@ final class NT_Content_Images_Overlay_Service {
 	/** @return array<string, mixed> */
 	public function get_status(): array {
 		$context = $this->profiles->get_context();
+		$site    = is_array( $context['site'] ?? null ) ? $context['site'] : array();
 		$brand   = is_array( $context['brand'] ?? null ) ? $context['brand'] : array();
 		$fonts   = $this->renderer->get_font_status();
+		$active_pack = $this->settings->resolve_pack( $site, $brand );
+		$pack = $this->settings->get_pack( $active_pack );
 		$logo_id = absint( $brand['logo_attachment_id'] ?? 0 );
 		return array(
 			'gd_supported'    => NT_Content_Images_Overlay_Renderer::is_supported(),
@@ -74,8 +77,11 @@ final class NT_Content_Images_Overlay_Service {
 			'ready'           => NT_Content_Images_Overlay_Renderer::is_supported() && $fonts['ready'] && ! empty( $brand['overlay_enabled'] ),
 			'overlay_enabled' => ! empty( $brand['overlay_enabled'] ),
 			'logo_configured' => $logo_id > 0 && '' !== (string) get_attached_file( $logo_id ),
-			'templates'       => $this->registry->get_public(),
-			'settings'        => $this->settings->get_public(),
+			'templates'         => $this->registry->get_public(),
+			'template_packs'    => $this->settings->get_packs_public(),
+			'active_pack'       => $active_pack,
+			'active_pack_label' => is_array( $pack ) ? (string) ( $pack['label'] ?? $active_pack ) : $active_pack,
+			'settings'          => $this->settings->get_public(),
 		);
 	}
 
@@ -203,7 +209,10 @@ final class NT_Content_Images_Overlay_Service {
 			// bài và các bài kế nhau không trùng bố cục; chế độ fixed giữ mẫu cấu hình.
 			$is_content  = 'content' === (string) ( $item['settings']['image_type'] ?? '' );
 			$slot        = $is_content ? max( 1, absint( $item['settings']['image_index'] ?? 1 ) ) : 0;
-			$template_id = $this->settings->pick_template( absint( $item['post_id'] ), $slot, $is_content );
+			$context     = $this->profiles->get_context();
+			$site        = is_array( $context['site'] ?? null ) ? $context['site'] : array();
+			$brand       = is_array( $context['brand'] ?? null ) ? $context['brand'] : array();
+			$template_id = $this->settings->pick_template( absint( $item['post_id'] ), $slot, $is_content, $site, $brand );
 		}
 		$template = $this->registry->get( $template_id );
 		if ( null === $template ) {

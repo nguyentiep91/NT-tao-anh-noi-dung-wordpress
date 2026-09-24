@@ -124,6 +124,74 @@ final class TemplateOverlayTest extends TestCase {
 		self::assertFalse( $result['auto_overlay'] );
 	}
 
+	public function test_pack_registry_ships_nine_industry_packs(): void {
+		$templates = new NT_Content_Images_Template_Registry();
+		$packs = new NT_Content_Images_Template_Pack_Registry( $templates );
+		$all = $packs->get_all();
+
+		self::assertCount( 9, $all );
+		foreach ( array( 'corporate', 'education', 'real_estate', 'certification', 'legal', 'news', 'technology', 'minimal', 'luxury' ) as $id ) {
+			self::assertArrayHasKey( $id, $all );
+			self::assertNotEmpty( $all[ $id ]['featured_templates'] );
+			self::assertNotEmpty( $all[ $id ]['content_templates'] );
+			foreach ( array_merge( $all[ $id ]['featured_templates'], $all[ $id ]['content_templates'] ) as $template_id ) {
+				self::assertTrue( $templates->exists( $template_id ), $id . ' references unknown template ' . $template_id );
+			}
+		}
+	}
+
+	public function test_pack_registry_auto_resolves_site_and_rule_pack_signals(): void {
+		$packs = new NT_Content_Images_Template_Pack_Registry( new NT_Content_Images_Template_Registry() );
+
+		self::assertSame( 'education', $packs->resolve( array( 'industries' => array( 'training' ), 'active_rule_packs' => array( 'generic', 'education' ) ), array( 'template_family' => 'corporate' ) ) );
+		self::assertSame( 'legal', $packs->resolve( array( 'industries' => array( 'generic' ), 'active_rule_packs' => array( 'generic', 'legal' ) ), array( 'template_family' => 'corporate' ) ) );
+		self::assertSame( 'real_estate', $packs->resolve( array( 'industries' => array( 'property' ), 'active_rule_packs' => array( 'generic' ) ), array( 'template_family' => 'corporate' ) ) );
+	}
+
+	public function test_pack_registry_manual_choice_overrides_auto_detection(): void {
+		$packs = new NT_Content_Images_Template_Pack_Registry( new NT_Content_Images_Template_Registry() );
+		self::assertSame(
+			'luxury',
+			$packs->resolve(
+				array( 'industries' => array( 'education' ), 'active_rule_packs' => array( 'education' ) ),
+				array( 'template_family' => 'education' ),
+				'luxury'
+			)
+		);
+	}
+
+	public function test_smart_mode_picks_only_from_resolved_pack_and_is_deterministic(): void {
+		$registry = new NT_Content_Images_Template_Registry();
+		$packs = new NT_Content_Images_Template_Pack_Registry( $registry );
+		$settings = new NT_Content_Images_Template_Settings( $registry, $packs );
+		$saved = $settings->save(
+			array(
+				'default_template' => 'bottom_gradient',
+				'content_template' => 'minimal_badge',
+				'template_mode' => 'smart',
+				'template_pack' => 'auto',
+				'show_category' => '1',
+				'show_site_name' => '1',
+				'show_logo' => '1',
+				'auto_overlay' => '1',
+			)
+		);
+		self::assertSame( 'smart', $saved['template_mode'] );
+		self::assertSame( 'auto', $saved['template_pack'] );
+
+		$site = array( 'industries' => array( 'iso', 'certification' ), 'active_rule_packs' => array( 'generic' ) );
+		$brand = array( 'template_family' => 'corporate' );
+		$pack = $packs->get( 'certification' );
+		self::assertIsArray( $pack );
+
+		$featured = $settings->pick_template( 101, 0, false, $site, $brand );
+		$content = $settings->pick_template( 101, 1, true, $site, $brand );
+		self::assertContains( $featured, $pack['featured_templates'] );
+		self::assertContains( $content, $pack['content_templates'] );
+		self::assertSame( $featured, $settings->pick_template( 101, 0, false, $site, $brand ) );
+		self::assertSame( 'certification', $settings->resolve_pack( $site, $brand ) );
+	}
+
 	public function test_hex_to_rgb_accepts_short_and_long_forms(): void {
 		self::assertSame( array( 255, 255, 255 ), NT_Content_Images_Overlay_Renderer::hex_to_rgb( '#ffffff' ) );
 		self::assertSame( array( 15, 23, 42 ), NT_Content_Images_Overlay_Renderer::hex_to_rgb( '0f172a' ) );
